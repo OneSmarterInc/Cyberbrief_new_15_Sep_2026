@@ -3,7 +3,7 @@ import { API_BASE_URL } from "../config";
 
 export default function Navbar({ 
   selectedCategory, setSelectedCategory, user, onSignin, 
-  onHome, onAbout, onAdmin, onSubscribe, 
+  onHome, onAbout, onBlogs, onAdmin, onSubscribe, 
   latestHeadline, latestSummary, latestPublished, latestSource, latestCategory, 
   totalStories = 0, totalSources = 48, onSearch 
 }) {
@@ -82,6 +82,7 @@ export default function Navbar({
         
         <div className="aggregate-top-right">
           <a className="aggregate-top-link" href="/how" onClick={(e) => { e.preventDefault(); navigate("/how"); if(onAbout) onAbout(); }}>About the desk</a>
+          <a className="aggregate-top-link" href="/blogs" onClick={(e) => { e.preventDefault(); navigate("/blogs"); if(onBlogs) onBlogs(); }}>Blogs</a>
           <button className="aggregate-subscribe" type="button" onClick={(e) => { e.preventDefault(); if (onSubscribe) onSubscribe(); }}>Subscribe</button>
         </div>
       </div>

@@ -12,6 +12,9 @@ export default function NewsCard({ article, index }) {
   const [queryText, setQueryText] = useState("");
   const [submitStatus, setSubmitStatus] = useState(null);
 
+  // Custom Website Modal State
+  const [modal, setModal] = useState({ show: false, title: "", message: "" });
+
   const handleListen = () => {
     // If this card is already speaking, pause it and reset state
     if (speaking) {
@@ -32,9 +35,7 @@ export default function NewsCard({ article, index }) {
     window.audioPlayer = new Audio(audioUrl);
     
     window.audioPlayer.onplay = () => setSpeaking(true);
-    
     window.audioPlayer.onended = () => setSpeaking(false);
-    
     window.audioPlayer.onerror = () => setSpeaking(false);
 
     // If another audio source interrupts this one, update the play button back to "LISTEN"
@@ -67,12 +68,14 @@ export default function NewsCard({ article, index }) {
           setShowModal(false);
           setSubmitStatus(null);
           setQueryText("");
-        }, 2000);
+        }, 1500);
       } else {
-        setSubmitStatus("error");
+        setSubmitStatus(null);
+        setModal({ show: true, title: "Submission Error", message: "Failed to send query to the editor. Please try again." });
       }
     } catch {
-      setSubmitStatus("error");
+      setSubmitStatus(null);
+      setModal({ show: true, title: "Network Error", message: "Could not connect to the server." });
     }
   };
 
@@ -84,6 +87,23 @@ export default function NewsCard({ article, index }) {
       onMouseOver={(e) => e.currentTarget.style.opacity = "0.9"}
       onMouseOut={(e) => e.currentTarget.style.opacity = "1"}
     >
+      
+      {/* Custom Website Modal Popup */}
+      {modal.show && (
+        <div 
+          onClick={(e) => e.stopPropagation()} 
+          style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 20, padding: "20px" }}
+        >
+          <div style={{ backgroundColor: "#F3EEE3", border: "2px solid #161412", padding: "25px", maxWidth: "350px", width: "100%", boxShadow: "0 10px 25px rgba(0,0,0,0.2)", borderRadius: "4px", textAlign: "left", cursor: "default" }}>
+            <h3 style={{ fontFamily: "Georgia, serif", margin: "0 0 10px 0", color: "#161412", fontSize: "17px" }}>{modal.title}</h3>
+            <p style={{ fontSize: "13px", color: "#5E574C", lineHeight: "1.5", marginBottom: "20px" }}>{modal.message}</p>
+            <div style={{ display: "flex", justifyContent: "flex-end" }}>
+              <button onClick={() => setModal({ show: false })} style={{ padding: "6px 16px", backgroundColor: "#161412", color: "#F3EEE3", border: "none", fontWeight: "bold", cursor: "pointer", fontSize: "11px" }}>OK</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <img className="news-image" src={localImages[index % localImages.length]} alt="" />
 
       <div className="news-content">
@@ -129,7 +149,7 @@ export default function NewsCard({ article, index }) {
           onClick={(e) => e.stopPropagation()} 
           style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(22,20,18,0.9)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 10, padding: "20px", cursor: "default" }}
         >
-          <div style={{ backgroundColor: "#F3EEE3", padding: "30px", width: "100%", maxWidth: "400px", border: "2px solid #C9A227" }}>
+          <div style={{ backgroundColor: "#F3EEE3", padding: "30px", width: "100%", maxWidth: "400px", border: "2px solid #C9A227", borderRadius: "4px" }}>
             <h3 style={{ margin: "0 0 15px 0", fontFamily: "Georgia, serif", color: "#161412" }}>Submit Query to Editor</h3>
             <p style={{ fontSize: "12px", color: "#5E574C", marginBottom: "15px" }}>Ask a question or report an issue regarding this specific story.</p>
             
@@ -137,7 +157,7 @@ export default function NewsCard({ article, index }) {
               value={queryText}
               onChange={(e) => setQueryText(e.target.value)}
               placeholder="What would you like to ask?"
-              style={{ width: "100%", height: "100px", padding: "10px", border: "1px solid #161412", backgroundColor: "#fff", outline: "none", resize: "none", marginBottom: "15px", fontFamily: "Arial", color: "#161412" }}
+              style={{ width: "100%", height: "100px", padding: "10px", border: "1px solid #161412", backgroundColor: "#fff", outline: "none", resize: "none", marginBottom: "15px", fontFamily: "Arial", color: "#161412", boxSizing: "border-box" }}
             />
             
             <div style={{ display: "flex", justifyContent: "space-between" }}>
@@ -150,12 +170,11 @@ export default function NewsCard({ article, index }) {
               <button 
                 onClick={(e) => { e.stopPropagation(); submitQuery(); }} 
                 disabled={submitStatus === "loading" || !queryText.trim()}
-                style={{ padding: "8px 15px", border: "none", background: "#161412", color: "#F3EEE3", cursor: "pointer", fontWeight: "bold" }}
+                style={{ padding: "8px 15px", border: "none", background: "#161412", color: "#F3EEE3", cursor: "pointer", fontWeight: "bold", borderRadius: "3px" }}
               >
                 {submitStatus === "loading" ? "SENDING..." : submitStatus === "success" ? "SENT!" : "SUBMIT"}
               </button>
             </div>
-            {submitStatus === "error" && <p style={{ color: "red", fontSize: "12px", marginTop: "10px" }}>Failed to send query. Try again.</p>}
           </div>
         </div>
       )}

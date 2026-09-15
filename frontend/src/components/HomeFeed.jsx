@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import NewsCard from "./NewsCard";
 import TheWire from "./TheWire";
 
@@ -7,18 +7,41 @@ const localImages = [
   "/images/news_4.jpg", "/images/news_5.jpg", "/images/news_6.jpg", "/images/news_7.jpg",
 ];
 
-// 1. We added selectedCategory right here at the end of this list
 export default function HomeFeed({ 
   searchQuery, filteredArticles, currentArticles, loading, error, refreshing, fetchNews,
   currentPage, totalPages, handlePageChange, articles, selectedCategory 
 }) {
   
+  // Custom Website Modal State (replaces browser native alerts/confirms)
+  const [modal, setModal] = useState({ show: false, title: "", message: "", type: "alert", onConfirm: null });
+
   const mainArticles = currentArticles.slice(0, 3);
   const morningArticles = currentArticles.slice(3, 6);
   const briefArticles = currentArticles.slice(6, 14);
 
   return (
-    <div className="layout-container" style={{ display: "flex", maxWidth: "1550px", margin: "0 auto", width: "100%", padding: "20px 15px", gap: "25px" }}>
+    <div className="layout-container" style={{ display: "flex", maxWidth: "1550px", margin: "0 auto", width: "100%", padding: "20px 15px", gap: "25px", position: "relative" }}>
+      
+      {/* Custom Website Modal Popup */}
+      {modal.show && (
+        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
+          <div style={{ backgroundColor: "#F3EEE3", border: "2px solid #161412", padding: "30px", maxWidth: "400px", width: "100%", boxShadow: "0 10px 25px rgba(0,0,0,0.2)", borderRadius: "4px" }}>
+            <h3 style={{ fontFamily: "Georgia, serif", margin: "0 0 10px 0", color: "#161412", fontSize: "18px" }}>{modal.title}</h3>
+            <p style={{ fontSize: "14px", color: "#5E574C", lineHeight: "1.5", marginBottom: "25px" }}>{modal.message}</p>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
+              {modal.type === "confirm" ? (
+                <>
+                  <button onClick={() => setModal({ show: false })} style={{ padding: "8px 16px", backgroundColor: "#fff", border: "1px solid #161412", fontWeight: "bold", cursor: "pointer", fontSize: "12px" }}>Cancel</button>
+                  <button onClick={modal.onConfirm} style={{ padding: "8px 16px", backgroundColor: "#D32F2F", color: "#fff", border: "none", fontWeight: "bold", cursor: "pointer", fontSize: "12px" }}>Confirm</button>
+                </>
+              ) : (
+                <button onClick={() => setModal({ show: false })} style={{ padding: "8px 20px", backgroundColor: "#161412", color: "#F3EEE3", border: "none", fontWeight: "bold", cursor: "pointer", fontSize: "12px" }}>OK</button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       <style>{`
         .layout-container { flex-direction: row; align-items: flex-start; }
         .wire-sidebar { width: 420px; flex-shrink: 0; }
@@ -139,8 +162,6 @@ export default function HomeFeed({
       </main>
 
       <div className="wire-sidebar">
-        
-        {/* 2. We pass the selectedCategory into TheWire here */}
         <TheWire articles={articles} selectedCategory={selectedCategory} />
 
         {briefArticles.length > 0 && (

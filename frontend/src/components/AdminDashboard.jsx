@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { API_BASE_URL } from "../config";
+import BlogManagement from "./BlogManagement";
 
 export default function AdminDashboard({ user, articles, token, onRefresh, onBack, onLogout }) {
   const [view, setView] = useState(() => sessionStorage.getItem("newsai_admin_view") || "overview");
@@ -9,7 +10,6 @@ export default function AdminDashboard({ user, articles, token, onRefresh, onBac
   }, [view]);
 
   const [loadingId, setLoadingId] = useState(null);
-  
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("newest");
   const [queries, setQueries] = useState([]);
@@ -19,12 +19,20 @@ export default function AdminDashboard({ user, articles, token, onRefresh, onBac
   const [newSubEmail, setNewSubEmail] = useState("");
   const [subLoading, setSubLoading] = useState(false);
 
+  // Custom Website Modal State
+  const [modal, setModal] = useState({ show: false, title: "", message: "", type: "alert", onConfirm: null });
+
   // RSS Feed Management States
   const [feeds, setFeeds] = useState([]);
   const [newFeedName, setNewFeedName] = useState("");
   const [newFeedUrl, setNewFeedUrl] = useState("");
-  // Lock the default category to Cybersecurity
   const [newFeedCategory, setNewFeedCategory] = useState("Cybersecurity");
+
+  // Social Media Settings States
+  const [socialForm, setSocialForm] = useState({
+    twitter: "", youtube: "", email: "", insta: "", facebook: ""
+  });
+  const [socialSaving, setSocialSaving] = useState(false);
 
   const [smtpForm, setSmtpForm] = useState({ 
     name: "", email: "", reply_to: "", host: "", port: 587, 
@@ -39,7 +47,6 @@ export default function AdminDashboard({ user, articles, token, onRefresh, onBac
   const authToken = token || localStorage.getItem("newsai_token");
 
   useEffect(() => {
-    // SECURE INTERCEPTOR: Automatically destroys session if Django rejects token
     const checkAuth = (res) => {
       if (res.status === 401 || res.status === 403) {
         onLogout();
@@ -68,8 +75,39 @@ export default function AdminDashboard({ user, articles, token, onRefresh, onBac
     } else if (view === "feeds") {
       fetch(`${API_BASE_URL}/admin/feeds/`, { headers: { "Authorization": `Token ${authToken}` } })
       .then(checkAuth).then(data => setFeeds(data.feeds || [])).catch(console.error);
+    } else if (view === "social") {
+      fetch(`${API_BASE_URL}/admin/social/`, { headers: { "Authorization": `Token ${authToken}` } })
+      .then(checkAuth).then(data => {
+        if (data) {
+          setSocialForm({
+            twitter: data.twitter || "", youtube: data.youtube || "",
+            email: data.email || "", insta: data.insta || "", facebook: data.facebook || ""
+          });
+        }
+      }).catch(() => {});
     }
   }, [view, authToken, onLogout]);
+
+  const saveSocial = async (e) => {
+    e.preventDefault();
+    setSocialSaving(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/admin/social/`, { 
+        method: "POST", 
+        headers: { "Authorization": `Token ${authToken}`, "Content-Type": "application/json" }, 
+        body: JSON.stringify(socialForm) 
+      });
+      if (res.ok) {
+        setModal({ show: true, title: "Success", message: "Social media links updated successfully!", type: "alert" });
+      } else {
+        setModal({ show: true, title: "Error", message: "Failed to update social links.", type: "alert" });
+      }
+    } catch (err) { 
+      setModal({ show: true, title: "Network Error", message: "Failed to update social links.", type: "alert" });
+    } finally { 
+      setSocialSaving(false); 
+    }
+  };
 
   const toggleVisibility = async (id) => {
     setLoadingId(id);
@@ -109,7 +147,9 @@ export default function AdminDashboard({ user, articles, token, onRefresh, onBac
       if (res.ok) {
         setSubscribers([data.subscriber, ...subscribers]);
         setNewSubEmail("");
-      } else alert(data.error);
+      } else {
+        setModal({ show: true, title: "Error", message: data.error, type: "alert" });
+      }
     } catch (err) { console.error(err); }
     setSubLoading(false);
   };
@@ -117,32 +157,33 @@ export default function AdminDashboard({ user, articles, token, onRefresh, onBac
   const handleToggleSubscriber = async (id) => {
     try {
       const res = await fetch(`${API_BASE_URL}/admin/subscribers/${id}/toggle/`, {
-        method: "POST",
-        headers: { "Authorization": `Token ${authToken}` }
+        method: "POST", headers: { "Authorization": `Token ${authToken}` }
       });
-      if (res.ok) {
-        setSubscribers(subscribers.map(s => s.id === id ? { ...s, is_active: !s.is_active } : s));
-      }
+      if (res.ok) setSubscribers(subscribers.map(s => s.id === id ? { ...s, is_active: !s.is_active } : s));
     } catch (err) { console.error(err); }
   };
 
   const handleDeleteSubscriber = async (id) => {
-    if (!window.confirm("Are you sure you want to permanently delete this subscriber? This action cannot be undone.")) return;
-    
-    try {
-      const res = await fetch(`${API_BASE_URL}/admin/subscribers/${id}/delete/`, {
-        method: "DELETE",
-        headers: { "Authorization": `Token ${authToken}` }
-      });
-      if (res.ok) {
-        setSubscribers(subscribers.filter(s => s.id !== id));
-      } else {
-        const data = await res.json();
-        alert(data.error || "Failed to delete subscriber.");
+    setModal({
+      show: true,
+      title: "Confirm Deletion",
+      message: "Are you sure you want to permanently delete this subscriber? This action cannot be undone.",
+      type: "confirm",
+      onConfirm: async () => {
+        try {
+          const res = await fetch(`${API_BASE_URL}/admin/subscribers/${id}/delete/`, {
+            method: "DELETE", headers: { "Authorization": `Token ${authToken}` }
+          });
+          if (res.ok) {
+            setSubscribers(subscribers.filter(s => s.id !== id));
+            setModal({ show: false });
+          } else {
+            const data = await res.json();
+            setModal({ show: true, title: "Error", message: data.error || "Failed to delete subscriber.", type: "alert" });
+          }
+        } catch (err) { console.error(err); }
       }
-    } catch (err) { 
-      console.error("Network error deleting subscriber", err); 
-    }
+    });
   };
 
   const saveSMTP = async (e) => {
@@ -151,24 +192,35 @@ export default function AdminDashboard({ user, articles, token, onRefresh, onBac
     try {
       const res = await fetch(`${API_BASE_URL}/admin/smtp/`, { method: "POST", headers: { "Authorization": `Token ${authToken}`, "Content-Type": "application/json" }, body: JSON.stringify(smtpForm) });
       if (res.ok) {
-        const timeParsed = timeObj;
-        alert(`Settings Saved Successfully! Emails will now trigger daily at ${timeParsed.hour}:${timeParsed.min.padStart(2, '0')}`);
+        setModal({ show: true, title: "Success", message: "Email configuration settings saved successfully!", type: "alert" });
       }
     } catch (err) { console.error(err); } finally { setSmtpSaving(false); }
   };
 
   const triggerMassBlast = async () => {
-    if (!window.confirm(`Are you sure you want to send the daily briefing to ALL active subscribers right now?`)) return;
-    setBlastLoading(true);
-    try {
-      const res = await fetch(`${API_BASE_URL}/admin/smtp/blast/`, { method: "POST", headers: { "Authorization": `Token ${authToken}` } });
-      const data = await res.json();
-      if (res.ok) {
-        alert(data.message);
-        setView("subscribers"); 
-      } else alert(data.error);
-    } catch (err) { alert("Network Error"); }
-    setBlastLoading(false);
+    setModal({
+      show: true,
+      title: "Confirm Daily Blast",
+      message: "Are you sure you want to send the daily briefing to ALL active subscribers right now?",
+      type: "confirm",
+      onConfirm: async () => {
+        setBlastLoading(true);
+        try {
+          const res = await fetch(`${API_BASE_URL}/admin/smtp/blast/`, { method: "POST", headers: { "Authorization": `Token ${authToken}` } });
+          const data = await res.json();
+          if (res.ok) { 
+            setModal({ show: true, title: "Blast Sent", message: data.message, type: "alert" });
+            setView("subscribers"); 
+          } else {
+            setModal({ show: true, title: "Error", message: data.error, type: "alert" });
+          }
+        } catch (err) { 
+          setModal({ show: true, title: "Network Error", message: "Failed to send daily blast.", type: "alert" });
+        } finally {
+          setBlastLoading(false);
+        }
+      }
+    });
   };
 
   const filteredSubscribers = useMemo(() => subscribers.filter(s => s.email.toLowerCase().includes(subSearch.toLowerCase())), [subscribers, subSearch]);
@@ -186,10 +238,7 @@ export default function AdminDashboard({ user, articles, token, onRefresh, onBac
   const timeObj = useMemo(() => {
     const timeStr = smtpForm.daily_send_time || "08:00";
     const [h, m] = timeStr.split(':');
-    return {
-      hour: (h || "00").padStart(2, '0'),
-      min: m || "00"
-    };
+    return { hour: (h || "00").padStart(2, '0'), min: m || "00" };
   }, [smtpForm.daily_send_time]);
 
   const handleTimeChange = (type, value) => {
@@ -200,26 +249,42 @@ export default function AdminDashboard({ user, articles, token, onRefresh, onBac
       if (parseInt(min) > 59) min = "59";
       if (min.length > 2) min = min.slice(-2);
     }
-    
-    const new24h = `${hour.padStart(2, '0')}:${min}`;
-    setSmtpForm({ ...smtpForm, daily_send_time: new24h });
+    setSmtpForm({ ...smtpForm, daily_send_time: `${hour.padStart(2, '0')}:${min}` });
   };
 
   const handleTimeBlur = () => {
     let { hour, min } = timeObj;
     if (!min || isNaN(parseInt(min))) min = "00";
-    const new24h = `${hour.padStart(2, '0')}:${min.padStart(2, '0')}`;
-    setSmtpForm({ ...smtpForm, daily_send_time: new24h });
+    setSmtpForm({ ...smtpForm, daily_send_time: `${hour.padStart(2, '0')}:${min.padStart(2, '0')}` });
   };
 
   const hourOptions = Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, '0'));
-
   const inputStyle = { width: "100%", padding: "10px", border: "1px solid #C9C1B0", outline: "none", fontSize: "14px", boxSizing: "border-box" };
   const labelStyle = { display: "block", fontSize: "12px", fontWeight: "bold", marginBottom: "5px", color: "#161412" };
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh", backgroundColor: "#F3EEE3", fontFamily: "Arial, sans-serif" }}>
+    <div style={{ display: "flex", minHeight: "100vh", backgroundColor: "#F3EEE3", fontFamily: "Arial, sans-serif", position: "relative" }}>
       
+      {/* Custom Website Modal Popup */}
+      {modal.show && (
+        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
+          <div style={{ backgroundColor: "#F3EEE3", border: "2px solid #161412", padding: "30px", maxWidth: "400px", width: "100%", boxShadow: "0 10px 25px rgba(0,0,0,0.2)", borderRadius: "4px" }}>
+            <h3 style={{ fontFamily: "Georgia, serif", margin: "0 0 10px 0", color: "#161412", fontSize: "18px" }}>{modal.title}</h3>
+            <p style={{ fontSize: "14px", color: "#5E574C", lineHeight: "1.5", marginBottom: "25px" }}>{modal.message}</p>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
+              {modal.type === "confirm" ? (
+                <>
+                  <button onClick={() => setModal({ show: false })} style={{ padding: "8px 16px", backgroundColor: "#fff", border: "1px solid #161412", fontWeight: "bold", cursor: "pointer", fontSize: "12px" }}>Cancel</button>
+                  <button onClick={modal.onConfirm} style={{ padding: "8px 16px", backgroundColor: "#D32F2F", color: "#fff", border: "none", fontWeight: "bold", cursor: "pointer", fontSize: "12px" }}>Confirm</button>
+                </>
+              ) : (
+                <button onClick={() => setModal({ show: false })} style={{ padding: "8px 20px", backgroundColor: "#161412", color: "#F3EEE3", border: "none", fontWeight: "bold", cursor: "pointer", fontSize: "12px" }}>OK</button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Admin Sidebar */}
       <div style={{ width: "260px", backgroundColor: "#161412", color: "#F3EEE3", display: "flex", flexDirection: "column", flexShrink: 0 }}>
         <div style={{ padding: "30px 20px" }}>
@@ -236,6 +301,8 @@ export default function AdminDashboard({ user, articles, token, onRefresh, onBac
             </li>
             <li onClick={() => setView("subscribers")} style={{ padding: "12px 0", borderBottom: "1px solid #333", color: view === "subscribers" ? "#C9A227" : "#F3EEE3", fontWeight: view === "subscribers" ? "bold" : "normal", cursor: "pointer" }}>Subscribers</li>
             <li onClick={() => setView("feeds")} style={{ padding: "12px 0", borderBottom: "1px solid #333", color: view === "feeds" ? "#C9A227" : "#F3EEE3", fontWeight: view === "feeds" ? "bold" : "normal", cursor: "pointer" }}>RSS Feeds</li>
+            <li onClick={() => setView("blogs")} style={{ padding: "12px 0", borderBottom: "1px solid #333", color: view === "blogs" ? "#C9A227" : "#F3EEE3", fontWeight: view === "blogs" ? "bold" : "normal", cursor: "pointer" }}>Manage Blogs</li>
+            <li onClick={() => setView("social")} style={{ padding: "12px 0", borderBottom: "1px solid #333", color: view === "social" ? "#C9A227" : "#F3EEE3", fontWeight: view === "social" ? "bold" : "normal", cursor: "pointer" }}>Social Media</li>
             <li onClick={() => setView("smtp")} style={{ padding: "12px 0", borderBottom: "1px solid #333", color: view === "smtp" ? "#C9A227" : "#F3EEE3", fontWeight: view === "smtp" ? "bold" : "normal", cursor: "pointer" }}>Email Settings</li>
           </ul>
         </nav>
@@ -363,53 +430,25 @@ export default function AdminDashboard({ user, articles, token, onRefresh, onBac
                   ) : filteredSubscribers.map((sub) => (
                     <tr key={sub.id} style={{ borderBottom: "1px solid #EBE4D5", opacity: sub.is_active ? 1 : 0.6 }}>
                       <td style={{ padding: "12px 15px", fontWeight: "bold" }}>{sub.email}</td>
-                      
                       <td style={{ padding: "12px 15px", textAlign: "center", color: "#5E574C" }}>
                         {sub.subscribed_at ? new Date(sub.subscribed_at).toLocaleDateString("en-US", { year: 'numeric', month: 'short', day: 'numeric' }) : "N/A"}
                       </td>
-                      
                       <td style={{ padding: "12px 15px", textAlign: "center" }}>
                         <span style={{ backgroundColor: sub.is_active ? "#1F3A2E" : "#8F7118", color: "#F3EEE3", padding: "4px 8px", borderRadius: "3px", fontSize: "11px", fontWeight: "bold" }}>
                           {sub.is_active ? "ACTIVE" : "PAUSED"}
                         </span>
                       </td>
-
                       <td style={{ padding: "12px 15px", textAlign: "center" }}>
                         <span style={{ backgroundColor: "#161412", color: "#F3EEE3", padding: "4px 8px", borderRadius: "10px", fontSize: "12px", fontWeight: "bold" }}>
                           {sub.emails_received || 0}
                         </span>
                       </td>
-
                       <td style={{ padding: "12px 15px", textAlign: "right" }}>
                         <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px" }}>
-                          
-                          <button 
-                            onClick={() => handleToggleSubscriber(sub.id)} 
-                            style={{ 
-                              padding: "6px 12px", 
-                              border: sub.is_active ? "1px solid #8F7118" : "1px solid #1F3A2E", 
-                              backgroundColor: sub.is_active ? "#fff" : "#1F3A2E", 
-                              color: sub.is_active ? "#8F7118" : "#F3EEE3", 
-                              cursor: "pointer", 
-                              fontWeight: "bold",
-                              fontSize: "11px"
-                            }}
-                          >
+                          <button onClick={() => handleToggleSubscriber(sub.id)} style={{ padding: "6px 12px", border: sub.is_active ? "1px solid #8F7118" : "1px solid #1F3A2E", backgroundColor: sub.is_active ? "#fff" : "#1F3A2E", color: sub.is_active ? "#8F7118" : "#F3EEE3", cursor: "pointer", fontWeight: "bold", fontSize: "11px" }}>
                             {sub.is_active ? "PAUSE EMAILS" : "RESUME EMAILS"}
                           </button>
-                          
-                          <button 
-                            onClick={() => handleDeleteSubscriber(sub.id)} 
-                            style={{ 
-                              padding: "6px 12px", 
-                              border: "1px solid #D32F2F", 
-                              backgroundColor: "#D32F2F", 
-                              color: "#F3EEE3", 
-                              cursor: "pointer", 
-                              fontWeight: "bold",
-                              fontSize: "11px"
-                            }}
-                          >
+                          <button onClick={() => handleDeleteSubscriber(sub.id)} style={{ padding: "6px 12px", border: "1px solid #D32F2F", backgroundColor: "#D32F2F", color: "#F3EEE3", cursor: "pointer", fontWeight: "bold", fontSize: "11px" }}>
                             DELETE
                           </button>
                         </div>
@@ -425,7 +464,6 @@ export default function AdminDashboard({ user, articles, token, onRefresh, onBac
         {view === "feeds" && (
           <>
             <h1 style={{ fontFamily: "Georgia, serif", borderBottom: "2px solid #161412", paddingBottom: "10px" }}>RSS Feed Sources</h1>
-            
             <form onSubmit={async (e) => {
               e.preventDefault();
               const res = await fetch(`${API_BASE_URL}/admin/feeds/`, {
@@ -438,15 +476,15 @@ export default function AdminDashboard({ user, articles, token, onRefresh, onBac
                 setFeeds([data.feed, ...feeds]);
                 setNewFeedName("");
                 setNewFeedUrl("");
-              } else alert(data.error);
+              } else {
+                setModal({ show: true, title: "Error", message: data.error, type: "alert" });
+              }
             }} style={{ display: "flex", gap: "10px", margin: "20px 0", backgroundColor: "#fff", padding: "20px", border: "1px solid #161412" }}>
               <input type="text" placeholder="Feed Name (e.g. Wired)" value={newFeedName} onChange={e => setNewFeedName(e.target.value)} required style={{ padding: "10px", flex: 1, border: "1px solid #C9C1B0" }} />
               <input type="url" placeholder="RSS URL (https://...)" value={newFeedUrl} onChange={e => setNewFeedUrl(e.target.value)} required style={{ padding: "10px", flex: 2, border: "1px solid #C9C1B0" }} />
-              
               <select value={newFeedCategory} onChange={e => setNewFeedCategory(e.target.value)} style={{ padding: "10px", border: "1px solid #C9C1B0" }}>
                 <option value="Cybersecurity">Cybersecurity</option>
               </select>
-
               <button type="submit" style={{ padding: "10px 20px", backgroundColor: "#161412", color: "#F3EEE3", border: "none", fontWeight: "bold", cursor: "pointer" }}>Add Feed</button>
             </form>
 
@@ -480,9 +518,17 @@ export default function AdminDashboard({ user, articles, token, onRefresh, onBac
                           if (res.ok) setFeeds(feeds.map(f => f.id === feed.id ? { ...f, is_active: !f.is_active } : f));
                         }} style={{ padding: "6px 10px", marginRight: "8px", cursor: "pointer" }}>{feed.is_active ? "Pause" : "Resume"}</button>
                         <button onClick={async () => {
-                          if (!window.confirm("Delete this RSS feed source?")) return;
-                          const res = await fetch(`${API_BASE_URL}/admin/feeds/${feed.id}/`, { method: "DELETE", headers: { "Authorization": `Token ${authToken}` } });
-                          if (res.ok) setFeeds(feeds.filter(f => f.id !== feed.id));
+                          setModal({
+                            show: true,
+                            title: "Confirm Deletion",
+                            message: "Delete this RSS feed source?",
+                            type: "confirm",
+                            onConfirm: async () => {
+                              const res = await fetch(`${API_BASE_URL}/admin/feeds/${feed.id}/`, { method: "DELETE", headers: { "Authorization": `Token ${authToken}` } });
+                              if (res.ok) setFeeds(feeds.filter(f => f.id !== feed.id));
+                              setModal({ show: false });
+                            }
+                          });
                         }} style={{ padding: "6px 10px", backgroundColor: "#D32F2F", color: "#FFF", border: "none", cursor: "pointer" }}>Delete</button>
                       </td>
                     </tr>
@@ -490,6 +536,45 @@ export default function AdminDashboard({ user, articles, token, onRefresh, onBac
                 </tbody>
               </table>
             </div>
+          </>
+        )}
+
+        {view === "blogs" && (
+          <BlogManagement authToken={authToken} />
+        )}
+
+        {view === "social" && (
+          <>
+            <h1 style={{ fontFamily: "Georgia, serif", borderBottom: "2px solid #161412", paddingBottom: "10px" }}>Social Media Links</h1>
+            <p style={{ color: "#5E574C", marginBottom: "20px", marginTop: "10px" }}>Provide the links below. Only channels with entered URLs will appear in the site footer.</p>
+            
+            <form onSubmit={saveSocial} style={{ backgroundColor: "#fff", border: "1px solid #161412", padding: "30px", maxWidth: "800px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "20px", marginBottom: "20px" }}>
+                <div>
+                  <label style={labelStyle}>TWITTER / X URL</label>
+                  <input type="url" placeholder="https://twitter.com/..." value={socialForm.twitter} onChange={e => setSocialForm({...socialForm, twitter: e.target.value})} style={inputStyle} />
+                </div>
+                <div>
+                  <label style={labelStyle}>YOUTUBE URL</label>
+                  <input type="url" placeholder="https://youtube.com/..." value={socialForm.youtube} onChange={e => setSocialForm({...socialForm, youtube: e.target.value})} style={inputStyle} />
+                </div>
+                <div>
+                  <label style={labelStyle}>CONTACT EMAIL / MAILTO</label>
+                  <input type="text" placeholder="mailto:contact@example.com or link" value={socialForm.email} onChange={e => setSocialForm({...socialForm, email: e.target.value})} style={inputStyle} />
+                </div>
+                <div>
+                  <label style={labelStyle}>INSTAGRAM URL</label>
+                  <input type="url" placeholder="https://instagram.com/..." value={socialForm.insta} onChange={e => setSocialForm({...socialForm, insta: e.target.value})} style={inputStyle} />
+                </div>
+                <div>
+                  <label style={labelStyle}>FACEBOOK URL</label>
+                  <input type="url" placeholder="https://facebook.com/..." value={socialForm.facebook} onChange={e => setSocialForm({...socialForm, facebook: e.target.value})} style={inputStyle} />
+                </div>
+              </div>
+              <div style={{ borderTop: "1px solid #EBE4D5", paddingTop: "20px", display: "flex", justifyContent: "flex-end" }}>
+                <button type="submit" disabled={socialSaving} style={{ padding: "12px 24px", backgroundColor: "#161412", color: "#F3EEE3", border: "none", fontWeight: "bold", cursor: "pointer" }}>{socialSaving ? "SAVING..." : "SAVE SOCIAL LINKS"}</button>
+              </div>
+            </form>
           </>
         )}
 
@@ -504,7 +589,6 @@ export default function AdminDashboard({ user, articles, token, onRefresh, onBac
             <p style={{ color: "#5E574C", marginBottom: "20px", marginTop: "10px" }}>Configure SMTP to allow the desk to send newsletters and subscription alerts.</p>
             
             <form onSubmit={saveSMTP} style={{ backgroundColor: "#fff", border: "1px solid #161412", padding: "30px", maxWidth: "800px" }}>
-              
               <div style={{ backgroundColor: "#F3EEE3", borderLeft: "4px solid #C9A227", padding: "20px", marginBottom: "30px" }}>
                 <h3 style={{ margin: "0 0 10px 0", fontSize: "15px" }}>Automated Daily Briefing</h3>
                 <label style={labelStyle}>DAILY SEND TIME (24H FORMAT)</label>
@@ -513,21 +597,10 @@ export default function AdminDashboard({ user, articles, token, onRefresh, onBac
                   <select value={timeObj.hour} onChange={e => handleTimeChange('hour', e.target.value)} style={{ ...inputStyle, width: "80px", cursor: "pointer", textAlign: "center" }}>
                     {hourOptions.map(h => <option key={h} value={h}>{h}</option>)}
                   </select>
-                  
                   <span style={{ fontSize: "24px", fontWeight: "bold", alignSelf: "center" }}>:</span>
-                  
-                  <input 
-                    type="number" 
-                    min="0" 
-                    max="59" 
-                    value={timeObj.min} 
-                    onChange={e => handleTimeChange('min', e.target.value)} 
-                    onBlur={handleTimeBlur}
-                    style={{ ...inputStyle, width: "80px", textAlign: "center" }} 
-                  />
+                  <input type="number" min="0" max="59" value={timeObj.min} onChange={e => handleTimeChange('min', e.target.value)} onBlur={handleTimeBlur} style={{ ...inputStyle, width: "80px", textAlign: "center" }} />
                 </div>
-
-                <p style={{ fontSize: "12px", color: "#5E574C", margin: "12px 0 0 0" }}>Set the exact time (00:00 - 23:59) the server should automatically email all subscribers. You can type minutes manually.</p>
+                <p style={{ fontSize: "12px", color: "#5E574C", margin: "12px 0 0 0" }}>Set the exact time (00:00 - 23:59) the server should automatically email all subscribers.</p>
               </div>
 
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px", marginBottom: "20px" }}>

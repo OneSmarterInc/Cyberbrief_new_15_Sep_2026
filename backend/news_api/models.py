@@ -101,3 +101,25 @@ class RSSFeed(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.category})"
+    
+class SocialMediaConfig(models.Model):
+    twitter = models.URLField(max_length=500, blank=True, default="")
+    youtube = models.URLField(max_length=500, blank=True, default="")
+    email = models.CharField(max_length=255, blank=True, default="")
+    insta = models.URLField(max_length=500, blank=True, default="")
+    facebook = models.URLField(max_length=500, blank=True, default="")
+
+    def __str__(self):
+        return "Social Media Configuration"
+    
+class BlogPost(models.Model):
+    title = models.CharField(max_length=255)
+    description = models.TextField()
+    image_data = models.TextField(blank=True, null=True)
+    publish_option = models.CharField(max_length=50, default="now")
+    scheduled_for = models.DateTimeField(blank=True, null=True)  # <--- NEW FIELD
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return self.title

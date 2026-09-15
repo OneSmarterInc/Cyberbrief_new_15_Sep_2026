@@ -1,22 +1,28 @@
-from rest_framework.decorators import api_view, permission_classes, authentication_classes
-from rest_framework.authentication import TokenAuthentication
-from rest_framework.permissions import IsAdminUser
-from rest_framework.response import Response
-from rest_framework.authtoken.models import Token
-from django.contrib.auth import authenticate
-from django.contrib.auth.models import User
-from .services import get_stored_news
-from django.http import HttpResponse
-import datetime
-import pyotp
-import qrcode
 import io
 import base64
-import edge_tts
+import datetime
 import asyncio
-from .models import Article
+import qrcode
+import pyotp
+import edge_tts
 
-# --- CHANGE THESE TO YOUR REAL DOMAINS IN PRODUCTION ---
+from django.http import HttpResponse
+from django.contrib.auth import authenticate
+from django.contrib.auth.models import User
+
+from rest_framework.decorators import api_view, permission_classes, authentication_classes
+from rest_framework.authentication import TokenAuthentication
+from rest_framework.permissions import IsAdminUser, AllowAny
+from rest_framework.response import Response
+from rest_framework.authtoken.models import Token
+
+from django.db import models
+from django.utils import timezone
+from django.utils.dateparse import parse_datetime  # <--- IMPORTED TO PARSE SCHEDULED DATES
+
+from .models import Article, SocialMediaConfig
+from .services import get_stored_news
+
 FRONTEND_URL = "http://localhost:5173" 
 BACKEND_URL = "http://localhost:8000"
 
@@ -164,7 +170,6 @@ def verify_2fa(request):
 @permission_classes([IsAdminUser])
 def toggle_article(request, article_id):
     try:
-        from .models import Article
         article = Article.objects.get(id=article_id)
         article.is_active = not article.is_active
         article.save()
@@ -175,7 +180,7 @@ def toggle_article(request, article_id):
 @api_view(["POST"])
 def submit_query(request, article_id):
     try:
-        from .models import Article, ArticleQuery
+        from .models import ArticleQuery
         article = Article.objects.get(id=article_id)
         text = request.data.get("query_text", "").strip()
         
@@ -335,7 +340,6 @@ def unsubscribe_email(request):
         )
     return HttpResponse("Invalid request.", status=400)
 
-# --- BEAUTIFUL EMAIL GENERATOR ---
 def generate_email_html(articles, recipient_email):
     unsubscribe_link = f"{BACKEND_URL}/api/unsubscribe/?email={recipient_email}"
     current_date = datetime.datetime.now().strftime("%Y-%m-%d")
@@ -357,14 +361,11 @@ def generate_email_html(articles, recipient_email):
     </head>
     <body style="margin: 0; padding: 0; background-color: #ffffff;">
         <div style="font-family: Arial, sans-serif; max-width: 900px; margin: 0 auto; padding: 20px; background-color: #ffffff; color: #333333;">
-            
             <h2 style="font-size: 16px; color: #000000; margin: 0 0 10px 0; font-weight: bold;">Cyberbriefs Newsletter</h2>
             <hr style="border: 0; border-top: 1px solid #cccccc; margin-bottom: 15px;" />
-            
             <p style="font-size: 11px; line-height: 1.5; color: #555555; margin-bottom: 15px;">
-                This article stresses the importance of ensuring that an organization's Non-Human Identities (NHIs) are well-prepared to tackle the latest cybersecurity threats. It emphasizes the need to assess the readiness and response capabilities of NHIs to combat emerging risks effectively. Secure management of NHIs handle new threats is crucial for safeguarding sensitive information and maintaining a robust cybersecurity infrastructure. It is essential to confirm if NHIs are equipped to address evolving cybersecurity risks to protect digital assets effectively in today's complex threat landscape.
+                This article stresses the importance of ensuring that an organization's Non-Human Identities (NHIs) are well-prepared to tackle the latest cybersecurity threats.
             </p>
-            
             <p style="font-size: 11px; color: #555555; margin-bottom: 30px;">Summary Generated at {current_date}</p>
     """
     
@@ -375,14 +376,10 @@ def generate_email_html(articles, recipient_email):
             title = a.ai_headline or a.title
             summary = a.summary or "Summary unavailable."
             article_link = a.link or "#"
-            
-            # Safely map image index so it never throws an out-of-bounds error on item #5+
             img_url = PUBLIC_IMAGES[i % len(PUBLIC_IMAGES)]
-            
             if len(summary) > 230:
                 summary = summary[:227] + "..."
             
-            # Removed the yellow/category line completely and fixed image container stability
             html += f"""
             <div style="margin-bottom: 15px; background-color: #F8F9FA; border-radius: 8px; border: 1px solid #EBE4D5;">
                 <a href="{article_link}" target="_blank" style="text-decoration: none; color: inherit; display: block; padding: 15px;">
@@ -392,12 +389,8 @@ def generate_email_html(articles, recipient_email):
                                 <img src="{img_url}" width="100" height="100" style="display: block; border-radius: 8px; object-fit: cover; width: 100px; height: 100px; border: none;" alt="News" />
                             </td>
                             <td valign="top">
-                                <h3 style="margin: 0 0 8px 0; font-size: 14px; font-family: Arial, sans-serif; color: #000000;">
-                                    {title}
-                                </h3>
-                                <p style="margin: 0; font-size: 12px; color: #333333; line-height: 1.4; font-family: Arial, sans-serif;">
-                                    {summary}
-                                </p>
+                                <h3 style="margin: 0 0 8px 0; font-size: 14px; font-family: Arial, sans-serif; color: #000000;">{title}</h3>
+                                <p style="margin: 0; font-size: 12px; color: #333333; line-height: 1.4; font-family: Arial, sans-serif;">{summary}</p>
                             </td>
                         </tr>
                     </table>
@@ -407,8 +400,8 @@ def generate_email_html(articles, recipient_email):
             
     html += f"""
             <div style="text-align: center; margin-top: 40px; padding-top: 20px; border-top: 1px solid #cccccc;">
-                <p style="color: #777777; font-size: 11px; margin-bottom: 15px;">You are receiving this automated dispatch because you subscribed to The Aggregate Desk.</p>
-                <a href="{unsubscribe_link}" style="display: inline-block; padding: 10px 20px; background-color: #000000; color: #ffffff; font-size: 11px; font-weight: bold; text-decoration: none; border-radius: 4px; text-transform: uppercase; letter-spacing: 1px;">Unsubscribe</a>
+                <p style="color: #777777; font-size: 11px; margin-bottom: 15px;">You are receiving this automated dispatch because you subscribed.</p>
+                <a href="{unsubscribe_link}" style="display: inline-block; padding: 10px 20px; background-color: #000000; color: #ffffff; font-size: 11px; font-weight: bold; text-decoration: none; border-radius: 4px; text-transform: uppercase;">Unsubscribe</a>
             </div>
         </div>
     </body>
@@ -473,7 +466,6 @@ def subscribe_newsletter(request):
         
         Subscriber.objects.create(email=recipient, is_active=True)
         return Response({"status": "success", "message": "Subscription added!"})
-        
     except Exception as e:
         return Response({"error": f"Database Error: {str(e)}"}, status=400)
 
@@ -489,39 +481,27 @@ def process_mass_blast():
             return False, "No active subscribers found."
             
         latest_articles = list(Article.objects.filter(is_active=True).order_by('-id')[:5])
-            
-        backend = EmailBackend(
-            host=config.host, 
-            port=config.port, 
-            username=config.username or config.email, 
-            password=config.password, 
-            use_tls=(config.security_protocol == 'TLS'), 
-            use_ssl=(config.security_protocol == 'SSL')
-        )
+        backend = EmailBackend(host=config.host, port=config.port, username=config.username or config.email, password=config.password, use_tls=(config.security_protocol == 'TLS'), use_ssl=(config.security_protocol == 'SSL'))
         
         sent_count = 0
         for sub in subscribers:
             try:
                 user_html = generate_email_html(latest_articles, sub.email)
-                
                 msg = EmailMultiAlternatives(
                     subject='Cyberbriefs Newsletter',
-                    body='Please view this email in an HTML-compatible client to see the full daily briefing.',
+                    body='Please view this email in an HTML-compatible client.',
                     from_email=f"{config.name or 'Cyberbriefs'} <{config.email}>",
                     to=[sub.email],
                     reply_to=[config.reply_to] if config.reply_to else None,
                     connection=backend
                 )
-                
                 msg.attach_alternative(user_html, "text/html")
                 msg.send()
-                
                 sub.emails_received += 1
                 sub.save()
                 sent_count += 1
             except Exception as e:
                 print(f"Failed to send to {sub.email}: {e}")
-                
         return True, f"Sent {sent_count} emails!"
     except Exception as e:
         return False, str(e)
@@ -538,7 +518,6 @@ def send_daily_blast(request):
 
 def generate_audio(request):
     text = request.GET.get('text', 'No text provided.')
-    
     async def fetch_audio():
         communicate = edge_tts.Communicate(text, "en-US-AriaNeural")
         audio_data = b""
@@ -550,5 +529,173 @@ def generate_audio(request):
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     audio_bytes = loop.run_until_complete(fetch_audio())
-    
     return HttpResponse(audio_bytes, content_type="audio/mpeg")
+
+# --- SOCIAL MEDIA CONFIG ENDPOINTS ---
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def get_social_links(request):
+    config, _ = SocialMediaConfig.objects.get_or_create(id=1)
+    return Response({
+        "twitter": config.twitter,
+        "youtube": config.youtube,
+        "email": config.email,
+        "insta": config.insta,
+        "facebook": config.facebook,
+    })
+
+@api_view(["GET", "POST"])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAdminUser])
+def admin_social_links(request):
+    config, _ = SocialMediaConfig.objects.get_or_create(id=1)
+    if request.method == "POST":
+        config.twitter = request.data.get("twitter", "")
+        config.youtube = request.data.get("youtube", "")
+        config.email = request.data.get("email", "")
+        config.insta = request.data.get("insta", "")
+        config.facebook = request.data.get("facebook", "")
+        config.save()
+        return Response({"status": "success", "message": "Social links updated successfully"})
+    return Response({
+        "twitter": config.twitter,
+        "youtube": config.youtube,
+        "email": config.email,
+        "insta": config.insta,
+        "facebook": config.facebook,
+    })
+
+# --- BLOG ENDPOINTS WITH SCHEDULED FILTERING & BASE64 STORAGE ---
+
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def get_blogs(request):
+    from .models import BlogPost
+    now = timezone.now()
+    
+    # Filter active blogs: posted 'now' OR scheduled for a time that has already passed
+    blogs = BlogPost.objects.filter(is_active=True).filter(
+        models.Q(publish_option="now") | models.Q(publish_option="schedule", scheduled_for__lte=now)
+    ).order_by("-id")
+    
+    data = []
+    for b in blogs:
+        data.append({
+            "id": b.id,
+            "title": b.title,
+            "description": b.description,
+            "image_url": b.image_data or "",
+            "publish_option": b.publish_option,
+            "scheduled_for": b.scheduled_for.strftime("%Y-%m-%d %H:%M") if b.scheduled_for else "",
+            "created_at": b.created_at.strftime("%Y-%m-%d %H:%M"),
+        })
+    return Response({"blogs": data})
+
+@api_view(["GET", "POST"])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAdminUser])
+def admin_manage_blogs(request):
+    from .models import BlogPost
+    
+    if request.method == "POST":
+        title = request.data.get("title", "").strip()
+        description = request.data.get("description", "").strip()
+        publish_option = request.data.get("publish_option", "now")
+        
+        scheduled_for_str = request.data.get("scheduled_for")
+        scheduled_for = parse_datetime(scheduled_for_str) if scheduled_for_str else None
+        
+        image_file = request.FILES.get("image")
+        
+        if not title or not description:
+            return Response({"error": "Title and description are required."}, status=400)
+            
+        image_data_str = ""
+        if image_file:
+            encoded_string = base64.b64encode(image_file.read()).decode('utf-8')
+            content_type = image_file.content_type or "image/jpeg"
+            image_data_str = f"data:{content_type};base64,{encoded_string}"
+            
+        blog = BlogPost.objects.create(
+            title=title,
+            description=description,
+            publish_option=publish_option,
+            scheduled_for=scheduled_for if publish_option == "schedule" else None,
+            image_data=image_data_str
+        )
+        return Response({
+            "status": "success",
+            "blog": {
+                "id": blog.id,
+                "title": blog.title,
+                "description": blog.description,
+                "image_url": blog.image_data,
+                "publish_option": blog.publish_option,
+                "scheduled_for": blog.scheduled_for.strftime("%Y-%m-%d %H:%M") if blog.scheduled_for else "",
+                "created_at": blog.created_at.strftime("%Y-%m-%d %H:%M")
+            }
+        })
+        
+    blogs = BlogPost.objects.all().order_by("-id")
+    data = [{
+        "id": b.id,
+        "title": b.title,
+        "description": b.description,
+        "image_url": b.image_data or "",
+        "publish_option": b.publish_option,
+        "scheduled_for": b.scheduled_for.strftime("%Y-%m-%d %H:%M") if b.scheduled_for else "",
+        "created_at": b.created_at.strftime("%Y-%m-%d %H:%M"),
+        "is_active": b.is_active
+    } for b in blogs]
+    return Response({"blogs": data})
+
+@api_view(["PUT", "DELETE"])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAdminUser])
+def admin_modify_blog(request, blog_id):
+    from .models import BlogPost
+    try:
+        blog = BlogPost.objects.get(id=blog_id)
+    except BlogPost.DoesNotExist:
+        return Response({"error": "Blog not found."}, status=404)
+        
+    if request.method == "DELETE":
+        blog.delete()
+        return Response({"status": "success", "message": "Blog deleted successfully."})
+        
+    elif request.method == "PUT":
+        title = request.data.get("title", "").strip()
+        description = request.data.get("description", "").strip()
+        publish_option = request.data.get("publish_option", "now")
+        
+        scheduled_for_str = request.data.get("scheduled_for")
+        scheduled_for = parse_datetime(scheduled_for_str) if scheduled_for_str else None
+        
+        image_file = request.FILES.get("image")
+        
+        if not title or not description:
+            return Response({"error": "Title and description are required."}, status=400)
+            
+        blog.title = title
+        blog.description = description
+        blog.publish_option = publish_option
+        blog.scheduled_for = scheduled_for if publish_option == "schedule" else None
+        
+        if image_file:
+            encoded_string = base64.b64encode(image_file.read()).decode('utf-8')
+            content_type = image_file.content_type or "image/jpeg"
+            blog.image_data = f"data:{content_type};base64,{encoded_string}"
+            
+        blog.save()
+        return Response({
+            "status": "success",
+            "blog": {
+                "id": blog.id,
+                "title": blog.title,
+                "description": blog.description,
+                "image_url": blog.image_data,
+                "publish_option": blog.publish_option,
+                "scheduled_for": blog.scheduled_for.strftime("%Y-%m-%d %H:%M") if blog.scheduled_for else "",
+                "created_at": blog.created_at.strftime("%Y-%m-%d %H:%M")
+            }
+        })

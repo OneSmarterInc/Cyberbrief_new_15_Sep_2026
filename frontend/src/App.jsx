@@ -9,6 +9,7 @@ import TermsOfUse from "./components/TermsOfUse";
 import CookieSettings from "./components/CookieSettings";
 import Footer from "./components/Footer";
 import HomeFeed from "./components/HomeFeed";
+import BlogPage from "./components/BlogPage";
 
 const TOKEN_KEY = "newsai_token";
 const USER_KEY = "newsai_user";
@@ -52,7 +53,6 @@ export default function App() {
   };
 
   useEffect(() => {
-    // We pass 'event' here. On initial load, event is undefined. On soft navigation, it's a PopStateEvent.
     const handleRouting = (event) => {
       if (window.location.hash.startsWith("#/")) {
         const cleanPath = window.location.hash.replace("#", "");
@@ -63,7 +63,6 @@ export default function App() {
       const searchParams = new URLSearchParams(window.location.search);
       setCurrentPage(1);
 
-      // --- NEW: If this is a hard refresh (event is undefined) on /search, force redirect to Home ---
       if (path === "/search" && !event) {
         window.history.replaceState({}, "", "/");
         path = "/";
@@ -81,6 +80,8 @@ export default function App() {
         }
       } else if (path === "/login") {
         setAuthScreen("login");
+      } else if (path === "/blogs" || path === "/blog") {  // <--- FIXED TO SUPPORT BOTH /blogs & /blog
+        setAuthScreen("blog");
       } else if (path === "/how") {
         setAuthScreen("about");
       } else if (path === "/privacy") {
@@ -108,7 +109,6 @@ export default function App() {
     window.addEventListener("popstate", handleRouting);
     window.addEventListener("hashchange", handleRouting); 
     
-    // Initial call on page load (event is undefined)
     handleRouting(); 
     
     return () => {
@@ -281,6 +281,7 @@ export default function App() {
           onSignin={() => navigate("/login")}
           onHome={handleHome} 
           onAbout={() => navigate("/how")}
+          onBlogs={() => navigate("/blogs")}
           onAdmin={() => navigate("/admin")} 
           onSubscribe={() => setShowSubPopup(true)} 
           onSearch={handleSearch} 
@@ -293,6 +294,7 @@ export default function App() {
 
       <div style={{ flex: 1 }}>
         {authScreen === "login" ? <LoginScreen onLogin={saveSession} onBack={() => navigate("/")} />
+        : authScreen === "blog" ? <BlogPage onBack={() => navigate("/")} />
         : authScreen === "about" ? <AboutDesk onBack={() => navigate("/")} />
         : authScreen === "privacy" ? <PrivacyPolicy onBack={() => navigate("/")} />
         : authScreen === "terms" ? <TermsOfUse onBack={() => navigate("/")} />

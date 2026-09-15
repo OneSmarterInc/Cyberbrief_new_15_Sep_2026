@@ -1,5 +1,5 @@
 from django.urls import path
-from . import views  # <--- THIS LINE IS REQUIRED
+from . import views
 
 urlpatterns = [
     path('health/', views.health, name='health'),
@@ -7,7 +7,6 @@ urlpatterns = [
     path('register/', views.register, name='register'),
     path('login/', views.login, name='login'),
     
-    # 2FA endpoints updated with the "login/" prefix to prevent the 404 error
     path('login/setup-2fa/', views.setup_2fa, name='setup_2fa'),
     path('login/verify-2fa/', views.verify_2fa, name='verify_2fa'),
     
@@ -25,5 +24,12 @@ urlpatterns = [
     path('unsubscribe/', views.unsubscribe_email, name='unsubscribe_email'),
     path('audio/', views.generate_audio, name='generate_audio'),
     path('admin/feeds/', views.manage_rss_feeds, name='manage_rss_feeds'),
-path('admin/feeds/<int:feed_id>/', views.modify_rss_feed, name='modify_rss_feed'),
+    path('admin/feeds/<int:feed_id>/', views.modify_rss_feed, name='modify_rss_feed'),
+    path("social/", views.get_social_links, name="get_social_links"),
+    path("admin/social/", views.admin_social_links, name="admin_social_links"),
+    
+    # --- UPDATED BLOG URLS ---
+    path("blogs/", views.get_blogs, name="get_blogs"),
+    path("admin/blogs/", views.admin_manage_blogs, name="admin_manage_blogs"),
+    path("admin/blogs/<int:blog_id>/", views.admin_modify_blog, name="admin_modify_blog"),
 ]

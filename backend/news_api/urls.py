@@ -1,0 +1,29 @@
+from django.urls import path
+from . import views  # <--- THIS LINE IS REQUIRED
+
+urlpatterns = [
+    path('health/', views.health, name='health'),
+    path('news/', views.news, name='news'),
+    path('register/', views.register, name='register'),
+    path('login/', views.login, name='login'),
+    
+    # 2FA endpoints updated with the "login/" prefix to prevent the 404 error
+    path('login/setup-2fa/', views.setup_2fa, name='setup_2fa'),
+    path('login/verify-2fa/', views.verify_2fa, name='verify_2fa'),
+    
+    path('news/<int:article_id>/toggle/', views.toggle_article, name='toggle_article'),
+    path('news/<int:article_id>/query/', views.submit_query, name='submit_query'),
+    path('admin/queries/', views.get_queries, name='get_queries'),
+    path('admin/queries/<int:query_id>/toggle/', views.toggle_query_status, name='toggle_query_status'),
+    path('admin/subscribers/', views.manage_subscribers, name='manage_subscribers'),
+    path('admin/subscribers/<int:sub_id>/toggle/', views.toggle_subscriber, name='toggle_subscriber'),
+    path('admin/subscribers/<int:sub_id>/delete/', views.delete_subscriber, name='delete_subscriber'),
+    path('admin/smtp/', views.manage_smtp, name='manage_smtp'),
+    path('admin/smtp/test/', views.send_test_email, name='send_test_email'),
+    path('admin/smtp/blast/', views.send_daily_blast, name='send_daily_blast'),
+    path('subscribe/', views.subscribe_newsletter, name='subscribe_newsletter'),
+    path('unsubscribe/', views.unsubscribe_email, name='unsubscribe_email'),
+    path('audio/', views.generate_audio, name='generate_audio'),
+    path('admin/feeds/', views.manage_rss_feeds, name='manage_rss_feeds'),
+path('admin/feeds/<int:feed_id>/', views.modify_rss_feed, name='modify_rss_feed'),
+]

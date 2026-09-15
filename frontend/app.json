@@ -1,0 +1,18 @@
+{
+  "expo": {
+    "name": "RSS News AI",
+    "slug": "rss-news-ai",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "resizeMode": "contain"
+    },
+    "android": {
+      "package": "com.example.rssnewsai"
+    },
+    "ios": {
+      "bundleIdentifier": "com.example.rssnewsai"
+    }
+  }
+}

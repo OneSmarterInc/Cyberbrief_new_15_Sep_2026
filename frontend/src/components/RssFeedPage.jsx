@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from "react";
+import { API_BASE_URL } from "../config";
 
 // Local fallback images from the public folder
 const localImages = [
@@ -10,7 +11,6 @@ const localImages = [
 ];
 const getArticleImage = (article) => {
   if (!article) return localImages[0];
-  // If article has a numeric ID, use it. Otherwise, generate a hash from its title/guid.
   const numericId = Number(article.id) || Math.abs(article.title?.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0)) || 1;
   return localImages[numericId % localImages.length];
 };
@@ -25,6 +25,21 @@ export default function RssFeedPage({ articles, onBack }) {
   });
   
   const [searchQuery, setSearchQuery] = useState("");
+  const [dbSources, setDbSources] = useState([]);
+
+  // Fetch active RSS sources directly from the backend database so newly enabled feeds always show up
+  useEffect(() => {
+    fetch(`${API_BASE_URL}/admin/feeds/`, { credentials: "include" })
+      .then(res => res.json())
+      .then(data => {
+        if (data.feeds) {
+          // Filter only active feeds from the database
+          const activeNames = data.feeds.filter(f => f.is_active !== false).map(f => f.name);
+          setDbSources(activeNames);
+        }
+      })
+      .catch(err => console.error("Failed to fetch RSS feeds", err));
+  }, []);
 
   // 2. Listen to the Browser's Back/Forward buttons and update the view automatically
   useEffect(() => {
@@ -43,11 +58,11 @@ export default function RssFeedPage({ articles, onBack }) {
     return articles.find(a => String(a.id) === String(selectedArticleId)) || null;
   }, [articles, selectedArticleId]);
 
+  // Combine database sources and article sources to ensure zero missing active feeds
   const uniqueSources = useMemo(() => {
-    return Array.from(
-      new Set(articles.filter(a => a.is_active !== false && a.source).map(a => a.source))
-    ).sort();
-  }, [articles]);
+    const articleSources = articles.filter(a => a.is_active !== false && a.source).map(a => a.source);
+    return Array.from(new Set([...dbSources, ...articleSources])).sort();
+  }, [dbSources, articles]);
 
   const sourceArticles = useMemo(() => {
     if (!selectedSource) return [];
@@ -312,7 +327,7 @@ export default function RssFeedPage({ articles, onBack }) {
 
             <div style={{ display: "flex", flexDirection: "column", gap: "35px" }}>
               {sourceArticles.length === 0 ? (
-                <p style={{ textAlign: "center", color: "#5E574C", fontSize: "20px", marginTop: "20px" }}>No articles match your search.</p>
+                <p style={{ textAlign: "center", color: "#5E574C", fontSize: "20px", marginTop: "20px" }}>No articles match your search or this source has not fetched articles yet.</p>
               ) : (
                 sourceArticles.map((article) => {
                   const displayImage = localImages[article.id % localImages.length];

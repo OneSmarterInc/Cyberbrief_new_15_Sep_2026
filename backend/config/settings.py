@@ -128,7 +128,7 @@ DATABASES = {
 }
 
 LANGUAGE_CODE = "en-us"
-TIME_ZONE = "Asia/Kolkata"
+TIME_ZONE = "America/New_York" # <--- CHANGED FROM Asia/Kolkata TO EST/EDT
 USE_I18N = True
 USE_TZ = True
 

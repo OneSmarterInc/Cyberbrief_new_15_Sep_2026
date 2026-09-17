@@ -647,6 +647,7 @@ def get_social_links(request):
         "email": config.email,
         "insta": config.insta,
         "facebook": config.facebook,
+        "linkedin": config.linkedin, # <-- ADD THIS
     })
 
 @api_view(["GET", "POST"])
@@ -660,6 +661,7 @@ def admin_social_links(request):
         config.email = request.data.get("email", "")
         config.insta = request.data.get("insta", "")
         config.facebook = request.data.get("facebook", "")
+        config.linkedin = request.data.get("linkedin", "") # <-- ADD THIS
         config.save()
         return Response({"status": "success", "message": "Social links updated successfully"})
     return Response({
@@ -668,8 +670,8 @@ def admin_social_links(request):
         "email": config.email,
         "insta": config.insta,
         "facebook": config.facebook,
+        "linkedin": config.linkedin, # <-- ADD THIS
     })
-
 # --- BLOG ENDPOINTS WITH SCHEDULED FILTERING & BASE64 STORAGE ---
 @api_view(["GET"])
 @permission_classes([AllowAny])
@@ -894,3 +896,10 @@ def admin_modify_book(request, book_id):
             "status": "success",
             "book": {"id": book.id, "title": book.title, "description": book.description, "url": book.url, "image_url": book.image_data}
         })
+    
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def get_active_rss_feeds(request):
+    feeds = RSSFeed.objects.filter(is_active=True).order_by("name")
+    data = [{"id": f.id, "name": f.name, "category": f.category, "url": f.url} for f in feeds]
+    return Response({"feeds": data})

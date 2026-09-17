@@ -24,10 +24,11 @@ export default function BookManagement({ authToken }) {
     fetchBooks();
   }, []);
 
-  const fetchBooks = async () => {
+ const fetchBooks = async () => {
     try {
       const res = await fetch(`${API_BASE_URL}/admin/books/`, {
-        headers: { "Authorization": `Token ${authToken}` }
+        headers: { "Authorization": `Token ${authToken}` },
+        credentials: "include" // <--- ADD THIS LINE
       });
       const data = await res.json();
       if (res.ok) setBooks(data.books || []);

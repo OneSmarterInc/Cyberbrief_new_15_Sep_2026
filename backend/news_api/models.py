@@ -103,14 +103,15 @@ class RSSFeed(models.Model):
         return f"{self.name} ({self.category})"
     
 class SocialMediaConfig(models.Model):
-    twitter = models.URLField(max_length=500, blank=True, default="")
-    youtube = models.URLField(max_length=500, blank=True, default="")
-    email = models.CharField(max_length=255, blank=True, default="")
-    insta = models.URLField(max_length=500, blank=True, default="")
-    facebook = models.URLField(max_length=500, blank=True, default="")
+    twitter = models.URLField(max_length=500, blank=True)
+    youtube = models.URLField(max_length=500, blank=True)
+    email = models.CharField(max_length=500, blank=True)
+    insta = models.URLField(max_length=500, blank=True)
+    facebook = models.URLField(max_length=500, blank=True)
+    linkedin = models.URLField(max_length=500, blank=True) # <-- ADD THIS FIELD
 
     def __str__(self):
-        return "Social Media Configuration"
+        return "Social Media Links"
     
 class BlogPost(models.Model):
     title = models.CharField(max_length=255)

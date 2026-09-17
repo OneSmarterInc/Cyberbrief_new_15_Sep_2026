@@ -38,5 +38,6 @@ urlpatterns = [
     path("admin/blogs/<int:blog_id>/", views.admin_modify_blog, name="admin_modify_blog"),
     path('books/', views.get_books, name='get_books'), # Public facing books
     path('admin/books/', views.admin_manage_books, name='admin_manage_books'), # Admin GET/POST
-    path('admin/books/<int:book_id>/', views.admin_modify_book, name='admin_modify_book'), # Admin PUT/DELETE
+    path('admin/books/<int:book_id>/', views.admin_modify_book, name='admin_modify_book'), 
+    path("rss-feeds/", views.get_active_rss_feeds, name="get_active_rss_feeds"),# Admin PUT/DELETE
 ]

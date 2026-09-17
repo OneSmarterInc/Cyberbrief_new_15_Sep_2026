@@ -238,7 +238,7 @@ export default function Navbar({
         <div className="aggregate-wrap aggregate-briefing-inner">
           
           <div>
-            <div className="aggregate-briefing-label">Morning briefing <span className="aggregate-briefing-meta">· recorded 6:00 AM ET</span></div>
+            <div className="aggregate-briefing-label">Latest news briefing <span className="aggregate-briefing-meta">· recorded 6:00 AM ET</span></div>
             <h2 className="aggregate-briefing-title">{latestHeadline || "Three stories that will shape your Thursday, read by the desk."}</h2>
             <div className="aggregate-briefing-summary">{displaySummary}</div>
           </div>

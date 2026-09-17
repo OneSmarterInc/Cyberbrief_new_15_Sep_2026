@@ -17,6 +17,21 @@ MODEL_PATH = "./ai_model"
 tokenizer = AutoTokenizer.from_pretrained(MODEL_PATH)
 model = AutoModelForCausalLM.from_pretrained(MODEL_PATH)
 
+# --- STRICT CYBERSECURITY KEYWORD FILTER ---
+CYBER_KEYWORDS = [
+    "cybersecurity", "cyber-security", "infosec", "malware", "ransomware", 
+    "vulnerability", "exploit", "cve", "zero-day", "hacker", "hackers", 
+    "breach", "data leak", "data breach", "phishing", "cyberattack", 
+    "cyber attack", "ddos", "trojan", "spyware", "backdoor", "patch", 
+    "security flaw", "security update", "secops", "threat actor", "apt", 
+    "malicious", "credential", "stolen data", "security incident", "encryption",
+    "authentication", "firewall", "botnet", "cisco", "microsoft patch", "apple security"
+]
+
+def is_cybersecurity_related(title, summary):
+    text = f"{title} {summary}".lower()
+    return any(keyword in text for keyword in CYBER_KEYWORDS)
+
 def clean_text(value):
     if not value:
         return ""
@@ -31,25 +46,16 @@ def strip_ai_artifacts(text):
     if not text:
         return ""
     
-    # 1. Strip chat filler or echoed prompts
     text = re.sub(r'^(here is|summary:|assistant:|sure).*?:', '', text, flags=re.IGNORECASE)
-    
-    # 2. Strip first-person speaker leakage (e.g. "I'm excited to share", "I have planned")
     text = re.sub(r"(?:i'm|i am|i have|i've)\s+(?:excited to share|planned|announced|noted).*?(?:\.|:)", "", text, flags=re.IGNORECASE)
-
-    # 3. Strip Markdown code blocks, backticks (e.g., ```csharp, `code`)
-    text = re.sub(r'```[a-zA-Z]*', '', text)  # Removes triple backticks and language tags
-    text = text.replace('`', '')               # Removes single inline code backticks
-
-    # 4. Strip non-English / stray foreign characters (like CJK ideographs/symbols breaking English text)
+    text = re.sub(r'```[a-zA-Z]*', '', text) 
+    text = text.replace('`', '') 
     text = re.sub(r'[\u4e00-\u9fff\u3000-\u30ff]', '', text)
-
-    # 5. Clean brackets and syntax clutter
-    text = re.sub(r'\([^)]*\)', '', text)                    
-    text = re.sub(r'\[.*?\]', '', text)                       
+    text = re.sub(r'\([^)]*\)', '', text)                     
+    text = re.sub(r'\[.*?\]', '', text)                      
     text = re.sub(r'[\(\)\[\]\{\}\|\<\>\~_#\*\\/]', ' ', text)
     text = re.sub(r'\s*[,;:\-\.]\s*[,;:\-\.]+', '.', text)    
-    text = re.sub(r'\s{2,}', ' ', text)                       
+    text = re.sub(r'\s{2,}', ' ', text)                      
     return text.strip()
 
 def detect_category(title, summary, default_category=None):
@@ -80,7 +86,7 @@ def fetch_feed_data(feed_info):
         response = requests.get(feed_info["url"], timeout=6, headers={"User-Agent": "Mozilla/5.0"})
         response.raise_for_status()
         feed = feedparser.parse(response.content)
-        for item in feed.entries[:4]:
+        for item in feed.entries[:6]: # Checking top 6 per feed to catch cyber items
             items.append({"feed_info": feed_info, "item": item})
     except Exception:
         pass
@@ -103,6 +109,8 @@ def fetch_and_store_news():
             raw_items.extend(future.result())
 
     new_found = 0
+    filtered_out = 0
+
     for data in raw_items:
         feed_info = data["feed_info"]
         item = data["item"]
@@ -111,6 +119,11 @@ def fetch_and_store_news():
         link = item.get("link", "")
 
         if not title:
+            continue
+
+        # --- APPLIED CYBERSECURITY FILTER CHECK ---
+        if not is_cybersecurity_related(title, raw_summary):
+            filtered_out += 1
             continue
 
         category = detect_category(title, raw_summary, default_category=feed_info.get("category"))
@@ -128,14 +141,14 @@ def fetch_and_store_news():
                 published=clean_text(item.get("published") or item.get("updated") or ""),
             )
             new_found += 1
-            print(f"--> NEW [{category}]: {title[:40]}...")
+            print(f"--> NEW CYBER STORY [{feed_info['name']}]: {title[:40]}...")
 
-    print(f"Live Scan Complete: Checked {len(raw_items)} articles. Added {new_found} new.")
+    print(f"Live Scan Complete: Checked {len(raw_items)} articles. Skipped {filtered_out} non-cyber articles. Added {new_found} new.")
 
     # PHASE 2: Qwen2.5 Chat-Template Summarization Pipeline
     pending_articles = Article.objects.filter(ai_headline="")
     if pending_articles.exists():
-        print(f"AI Model Processing {pending_articles.count()} unsummarized articles with Qwen2.5...")
+        print(f"AI Model Processing {pending_articles.count()} unsummarized cybersecurity articles with Qwen2.5...")
 
     for art in pending_articles:
         cleaned_title = clean_text(art.title)
@@ -146,7 +159,6 @@ def fetch_and_store_news():
         else:
             content_to_use = cleaned_raw_summary
 
-        # Strict system instruction enforcing objective third-person reporting and clean plain English
         messages = [
             {
                 "role": "system", 
@@ -174,8 +186,8 @@ def fetch_and_store_news():
             
             outputs = model.generate(
                 **inputs,
-                max_new_tokens=220,     
-                min_new_tokens=100,     
+                max_new_tokens=220,    
+                min_new_tokens=100,    
                 temperature=0.3,
                 do_sample=True,
                 top_p=0.9,
@@ -190,7 +202,6 @@ def fetch_and_store_news():
             print(f"AI Error on '{art.title[:20]}': {exc}")
             continue
 
-        # Post-Processing & Formatting Rules
         if final_summary:
             if final_summary.lower().startswith(cleaned_title.lower()):
                 final_summary = final_summary[len(cleaned_title):].strip()
@@ -219,4 +230,3 @@ def fetch_and_store_news():
 
 def get_stored_news():
     return Article.objects.all().order_by("-id")
-

@@ -21,14 +21,12 @@ export default function BlogManagement({ authToken }) {
   const inputStyle = { width: "100%", padding: "10px", border: "1px solid #C9C1B0", outline: "none", fontSize: "14px", boxSizing: "border-box", backgroundColor: "#fff" };
   const labelStyle = { display: "block", fontSize: "12px", fontWeight: "bold", marginBottom: "5px", color: "#161412", letterSpacing: "0.5px" };
 
-  useEffect(() => {
-    fetchBlogs();
-  }, []);
-
+  // DEFINED FIRST so useEffect can call it safely
   const fetchBlogs = async () => {
     try {
       const res = await fetch(`${API_BASE_URL}/admin/blogs/`, {
-        headers: { "Authorization": `Token ${authToken}` }
+        headers: { "Authorization": `Token ${authToken}` },
+        credentials: "include"
       });
       const data = await res.json();
       if (res.ok) setBlogs(data.blogs || []);
@@ -36,6 +34,10 @@ export default function BlogManagement({ authToken }) {
       console.error("Failed to load blogs", err);
     }
   };
+
+  useEffect(() => {
+    fetchBlogs();
+  }, []);
 
   useEffect(() => {
     const editor = document.getElementById("rich-blog-editor");
@@ -124,6 +126,7 @@ export default function BlogManagement({ authToken }) {
       const res = await fetch(url, {
         method: method,
         headers: { "Authorization": `Token ${authToken}` },
+        credentials: "include",
         body: formData
       });
       const data = await res.json();
@@ -161,7 +164,8 @@ export default function BlogManagement({ authToken }) {
         try {
           const res = await fetch(`${API_BASE_URL}/admin/blogs/${id}/`, {
             method: "DELETE",
-            headers: { "Authorization": `Token ${authToken}` }
+            headers: { "Authorization": `Token ${authToken}` },
+            credentials: "include"
           });
           if (res.ok) {
             setBlogs(blogs.filter(b => b.id !== id));
@@ -198,7 +202,6 @@ export default function BlogManagement({ authToken }) {
     transition: "all 0.15s ease"
   });
 
-  // HELPER: Resolves URL securely and handles Base64 images
   const getImageUrl = (url) => {
     if (!url) return null;
     if (url.startsWith("http") || url.startsWith("data:image")) return url;
@@ -208,7 +211,6 @@ export default function BlogManagement({ authToken }) {
     return `${base}${cleanUrl}`;
   };
 
-  // HELPER: Renders the thumbnail bulletproof
   const renderImageCell = (blog) => {
     const imgPath = blog.image || blog.image_url;
     
@@ -218,11 +220,9 @@ export default function BlogManagement({ authToken }) {
 
     return (
       <div style={{ position: "relative", width: "40px", height: "40px" }}>
-        {/* Fallback layer if image breaks */}
         <div style={{ width: "100%", height: "100%", position: "absolute", top: 0, left: 0, display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: "#f5f5f5", borderRadius: "4px", border: "1px solid #ddd", zIndex: 1, fontSize: "9px", color: "#999", textAlign: "center", lineHeight: "1.1" }}>
           Error
         </div>
-        {/* Actual Image Layer */}
         <img
           src={getImageUrl(imgPath)}
           alt="Thumb"

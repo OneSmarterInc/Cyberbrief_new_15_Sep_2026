@@ -11,7 +11,7 @@ import Footer from "./components/Footer";
 import HomeFeed from "./components/HomeFeed";
 import BlogPage from "./components/BlogPage";
 import BookPage from "./components/BookPage"; 
-import RssFeedPage from "./components/RssFeedPage"; // <--- ADDED IMPORT
+import RssFeedPage from "./components/RssFeedPage";
 
 const TOKEN_KEY = "newsai_token";
 const USER_KEY = "newsai_user";
@@ -91,7 +91,7 @@ export default function App() {
         setAuthScreen("blog");
       } else if (path === "/books" || path === "/book") { 
         setAuthScreen("book");
-      } else if (path === "/rss") { // <--- ADDED RSS ROUTE
+      } else if (path === "/rss") {
         setAuthScreen("rss");
       } else if (path === "/how") {
         setAuthScreen("about");
@@ -172,7 +172,7 @@ export default function App() {
       setError("");
       const headers = { Accept: "application/json" };
       if (token) headers.Authorization = `Token ${token}`;
-      const response = await fetch(`${API_BASE_URL}/news/`, { headers });
+      const response = await fetch(`${API_BASE_URL}/news/`, { headers, credentials: 'include' });
       if (!response.ok) throw new Error(`News API returned ${response.status}`);
       const result = await response.json();
       setArticles(result.articles || []);
@@ -189,7 +189,7 @@ export default function App() {
   }, [token]);
 
   useEffect(() => {
-    if (!authScreen || authScreen === "admin") {
+    if (!authScreen || authScreen === "admin" || authScreen === "rss") {
       fetchNews(); 
       const intervalId = setInterval(() => { fetchNews(false); }, 1800000); 
       return () => clearInterval(intervalId); 
@@ -215,7 +215,8 @@ export default function App() {
       const res = await fetch(`${API_BASE_URL}/subscribe/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: subEmail })
+        body: JSON.stringify({ email: subEmail }),
+        credentials: 'include'
       });
       const data = await res.json();
       
@@ -296,7 +297,7 @@ export default function App() {
           user={user}
           onSignin={() => navigate("/login")}
           onHome={handleHome} 
-          onRss={() => navigate("/rss")} // <--- ADDED ONRSS PROP
+          onRss={() => navigate("/rss")}
           onAbout={() => navigate("/how")}
           onBlogs={() => navigate("/blogs")}
           onBooks={() => navigate("/books")}
@@ -315,7 +316,15 @@ export default function App() {
         {authScreen === "login" ? <LoginScreen onLogin={saveSession} onBack={() => navigate("/")} />
         : authScreen === "blog" ? <BlogPage onBack={() => navigate("/")} />
         : authScreen === "book" ? <BookPage onBack={() => navigate("/")} />
-        : authScreen === "rss" ? <RssFeedPage articles={articles} onBack={() => navigate("/")} /> // <--- RENDER RSS FEED PAGE
+        : authScreen === "rss" ? (
+            loading ? (
+              <div style={{ textAlign: "center", padding: "80px", fontFamily: "Georgia, serif", fontSize: "16px", color: "#5E574C" }}>
+                Loading intelligence sources...
+              </div>
+            ) : (
+              <RssFeedPage articles={articles} onBack={() => navigate("/")} />
+            )
+          )
         : authScreen === "about" ? <AboutDesk onBack={() => navigate("/")} />
         : authScreen === "privacy" ? <PrivacyPolicy onBack={() => navigate("/")} />
         : authScreen === "terms" ? <TermsOfUse onBack={() => navigate("/")} />

@@ -10,3 +10,9 @@ yarn-debug.log*
 yarn-error.log*
 .eslintcache
 .env
+
+# Database dumps
+datadump.json
+*.json
+*.sql
+*.sqlite3

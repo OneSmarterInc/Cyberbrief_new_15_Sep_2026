@@ -1,12 +1,15 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { API_BASE_URL } from "../config";
 import BlogManagement from "./BlogManagement";
+import BookManagement from "./BookManagement"; 
 
 export default function AdminDashboard({ user, articles, token, onRefresh, onBack, onLogout }) {
   const [view, setView] = useState(() => sessionStorage.getItem("newsai_admin_view") || "overview");
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false); 
 
   useEffect(() => {
     sessionStorage.setItem("newsai_admin_view", view);
+    setMobileMenuOpen(false); 
   }, [view]);
 
   const [loadingId, setLoadingId] = useState(null);
@@ -19,16 +22,13 @@ export default function AdminDashboard({ user, articles, token, onRefresh, onBac
   const [newSubEmail, setNewSubEmail] = useState("");
   const [subLoading, setSubLoading] = useState(false);
 
-  // Custom Website Modal State
   const [modal, setModal] = useState({ show: false, title: "", message: "", type: "alert", onConfirm: null });
 
-  // RSS Feed Management States
   const [feeds, setFeeds] = useState([]);
   const [newFeedName, setNewFeedName] = useState("");
   const [newFeedUrl, setNewFeedUrl] = useState("");
   const [newFeedCategory, setNewFeedCategory] = useState("Cybersecurity");
 
-  // Social Media Settings States
   const [socialForm, setSocialForm] = useState({
     twitter: "", youtube: "", email: "", insta: "", facebook: ""
   });
@@ -263,11 +263,40 @@ export default function AdminDashboard({ user, articles, token, onRefresh, onBac
   const labelStyle = { display: "block", fontSize: "12px", fontWeight: "bold", marginBottom: "5px", color: "#161412" };
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh", backgroundColor: "#F3EEE3", fontFamily: "Arial, sans-serif", position: "relative" }}>
+    <div className="admin-layout" style={{ display: "flex", minHeight: "100vh", backgroundColor: "#F3EEE3", fontFamily: "Arial, sans-serif", position: "relative" }}>
       
-      {/* Custom Website Modal Popup */}
+      <style>{`
+        .admin-layout { flex-direction: row; }
+        .admin-sidebar { width: 260px; height: 100vh; position: sticky; top: 0; display: flex; flex-direction: column; background-color: #161412; color: #F3EEE3; flex-shrink: 0; z-index: 100; transition: transform 0.3s ease; }
+        .admin-main { flex: 1; padding: 40px; overflow-y: auto; width: 100%; box-sizing: border-box; }
+        .mobile-header { display: none; background-color: #161412; color: #C9A227; padding: 15px 20px; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 110; border-bottom: 1px solid #333; }
+        .menu-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 90; }
+        
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .table-responsive { overflow-x: auto; background-color: #fff; border: 1px solid #161412; border-radius: 4px; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; marginTop: 30px; }
+        
+        @media (max-width: 900px) {
+          .admin-layout { flex-direction: column; }
+          .mobile-header { display: flex; }
+          .admin-sidebar { position: fixed; left: 0; top: 0; transform: translateX(${mobileMenuOpen ? '0' : '-100%'}); }
+          .menu-overlay { display: ${mobileMenuOpen ? 'block' : 'none'}; }
+          .admin-main { padding: 20px; }
+          .form-grid { grid-template-columns: 1fr; }
+        }
+      `}</style>
+
+      <div className="mobile-header">
+        <h2 style={{ margin: 0, fontFamily: "Georgia, serif", color: "#F3EEE3", fontSize: "20px" }}>Admin Desk</h2>
+        <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} style={{ background: "none", border: "none", color: "#C9A227", fontSize: "24px", cursor: "pointer" }}>
+          ☰
+        </button>
+      </div>
+
+      <div className="menu-overlay" onClick={() => setMobileMenuOpen(false)}></div>
+
       {modal.show && (
-        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
+        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: "20px" }}>
           <div style={{ backgroundColor: "#F3EEE3", border: "2px solid #161412", padding: "30px", maxWidth: "400px", width: "100%", boxShadow: "0 10px 25px rgba(0,0,0,0.2)", borderRadius: "4px" }}>
             <h3 style={{ fontFamily: "Georgia, serif", margin: "0 0 10px 0", color: "#161412", fontSize: "18px" }}>{modal.title}</h3>
             <p style={{ fontSize: "14px", color: "#5E574C", lineHeight: "1.5", marginBottom: "25px" }}>{modal.message}</p>
@@ -285,14 +314,16 @@ export default function AdminDashboard({ user, articles, token, onRefresh, onBac
         </div>
       )}
 
-      {/* Admin Sidebar */}
-      <div style={{ width: "260px", backgroundColor: "#161412", color: "#F3EEE3", display: "flex", flexDirection: "column", flexShrink: 0 }}>
+      <div className="admin-sidebar">
         <div style={{ padding: "30px 20px" }}>
-          <div style={{ fontSize: "12px", color: "#C9A227", fontWeight: "bold", letterSpacing: "1px", marginBottom: "5px" }}>ADMIN DESK</div>
+          <div style={{ fontSize: "12px", color: "#C9A227", fontWeight: "bold", letterSpacing: "1px", marginBottom: "5px", display: "flex", justifyContent: "space-between" }}>
+            ADMIN DESK
+            <span className="close-menu-btn" onClick={() => setMobileMenuOpen(false)} style={{ display: window.innerWidth <= 900 ? 'block' : 'none', cursor: 'pointer', fontSize: '16px' }}>✕</span>
+          </div>
           <h2 style={{ margin: 0, fontFamily: "Georgia, serif" }}>Cyberbriefs</h2>
         </div>
 
-        <nav style={{ flex: 1, padding: "0 20px" }}>
+        <nav style={{ flex: 1, padding: "0 20px", overflowY: "auto" }}>
           <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
             <li onClick={() => setView("overview")} style={{ padding: "12px 0", borderBottom: "1px solid #333", color: view === "overview" ? "#C9A227" : "#F3EEE3", fontWeight: view === "overview" ? "bold" : "normal", cursor: "pointer" }}>Overview</li>
             <li onClick={() => setView("manage")} style={{ padding: "12px 0", borderBottom: "1px solid #333", color: view === "manage" ? "#C9A227" : "#F3EEE3", fontWeight: view === "manage" ? "bold" : "normal", cursor: "pointer" }}>Manage Articles</li>
@@ -301,7 +332,11 @@ export default function AdminDashboard({ user, articles, token, onRefresh, onBac
             </li>
             <li onClick={() => setView("subscribers")} style={{ padding: "12px 0", borderBottom: "1px solid #333", color: view === "subscribers" ? "#C9A227" : "#F3EEE3", fontWeight: view === "subscribers" ? "bold" : "normal", cursor: "pointer" }}>Subscribers</li>
             <li onClick={() => setView("feeds")} style={{ padding: "12px 0", borderBottom: "1px solid #333", color: view === "feeds" ? "#C9A227" : "#F3EEE3", fontWeight: view === "feeds" ? "bold" : "normal", cursor: "pointer" }}>RSS Feeds</li>
+            
             <li onClick={() => setView("blogs")} style={{ padding: "12px 0", borderBottom: "1px solid #333", color: view === "blogs" ? "#C9A227" : "#F3EEE3", fontWeight: view === "blogs" ? "bold" : "normal", cursor: "pointer" }}>Manage Blogs</li>
+            
+            <li onClick={() => setView("books")} style={{ padding: "12px 0", borderBottom: "1px solid #333", color: view === "books" ? "#C9A227" : "#F3EEE3", fontWeight: view === "books" ? "bold" : "normal", cursor: "pointer" }}>Manage Books</li>
+            
             <li onClick={() => setView("social")} style={{ padding: "12px 0", borderBottom: "1px solid #333", color: view === "social" ? "#C9A227" : "#F3EEE3", fontWeight: view === "social" ? "bold" : "normal", cursor: "pointer" }}>Social Media</li>
             <li onClick={() => setView("smtp")} style={{ padding: "12px 0", borderBottom: "1px solid #333", color: view === "smtp" ? "#C9A227" : "#F3EEE3", fontWeight: view === "smtp" ? "bold" : "normal", cursor: "pointer" }}>Email Settings</li>
           </ul>
@@ -313,13 +348,12 @@ export default function AdminDashboard({ user, articles, token, onRefresh, onBac
         </div>
       </div>
 
-      {/* Main Content Area */}
-      <div style={{ flex: 1, padding: "40px", overflowY: "auto", maxHeight: "100vh" }}>
+      <div className="admin-main">
         
         {view === "overview" && (
           <>
             <h1 style={{ fontFamily: "Georgia, serif", borderBottom: "2px solid #161412", paddingBottom: "10px" }}>System Overview</h1>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "20px", marginTop: "30px" }}>
+            <div className="stats-grid">
               <div style={{ backgroundColor: "#fff", border: "1px solid #161412", padding: "20px", textAlign: "center" }}>
                 <h3 style={{ margin: "0 0 10px 0", fontSize: "14px", color: "#5E574C" }}>TOTAL STORIES</h3>
                 <div style={{ fontSize: "36px", fontWeight: "bold", color: "#161412" }}>{totalArticles}</div>
@@ -339,15 +373,15 @@ export default function AdminDashboard({ user, articles, token, onRefresh, onBac
         {view === "manage" && (
           <>
             <h1 style={{ fontFamily: "Georgia, serif", borderBottom: "2px solid #161412", paddingBottom: "10px" }}>Manage Articles</h1>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "20px", marginBottom: "20px" }}>
-              <input type="text" placeholder="Search by headline or source..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} style={{ padding: "10px 15px", width: "350px", border: "1px solid #C9C1B0", outline: "none" }} />
-              <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} style={{ padding: "10px", border: "1px solid #C9C1B0", outline: "none", cursor: "pointer" }}>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", justifyContent: "space-between", alignItems: "center", marginTop: "20px", marginBottom: "20px" }}>
+              <input type="text" placeholder="Search by headline or source..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} style={{ padding: "10px 15px", flex: "1", minWidth: "200px", maxWidth: "350px", border: "1px solid #C9C1B0", outline: "none" }} />
+              <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} style={{ padding: "10px", border: "1px solid #C9C1B0", outline: "none", cursor: "pointer", width: "150px" }}>
                 <option value="newest">Newest First</option>
                 <option value="status">Disabled First</option>
               </select>
             </div>
-            <div style={{ backgroundColor: "#fff", border: "1px solid #161412" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: "14px" }}>
+            <div className="table-responsive">
+              <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: "14px", minWidth: "600px" }}>
                 <thead>
                   <tr style={{ backgroundColor: "#EBE4D5", borderBottom: "1px solid #161412" }}>
                     <th style={{ padding: "12px 15px" }}>ID</th>
@@ -363,8 +397,8 @@ export default function AdminDashboard({ user, articles, token, onRefresh, onBac
                       <td style={{ padding: "12px 15px" }}>#{article.id}</td>
                       <td style={{ padding: "12px 15px", fontWeight: "bold" }}>{article.source}</td>
                       <td style={{ padding: "12px 15px" }}>{article.original_title.substring(0, 70)}...</td>
-                      <td style={{ padding: "12px 15px" }}><span style={{ padding: "4px 8px", fontSize: "12px", backgroundColor: article.is_active !== false ? "#1F3A2E" : "#8F7118", color: "#F3EEE3" }}>{article.is_active !== false ? "LIVE" : "HIDDEN"}</span></td>
-                      <td style={{ padding: "12px 15px", textAlign: "right" }}><button onClick={() => toggleVisibility(article.id)} style={{ padding: "6px 12px", cursor: "pointer" }}>{article.is_active !== false ? "DISABLE" : "ENABLE"}</button></td>
+                      <td style={{ padding: "12px 15px" }}><span style={{ padding: "4px 8px", fontSize: "12px", backgroundColor: article.is_active !== false ? "#1F3A2E" : "#8F7118", color: "#F3EEE3", whiteSpace: "nowrap" }}>{article.is_active !== false ? "LIVE" : "HIDDEN"}</span></td>
+                      <td style={{ padding: "12px 15px", textAlign: "right" }}><button onClick={() => toggleVisibility(article.id)} style={{ padding: "6px 12px", cursor: "pointer", whiteSpace: "nowrap" }}>{article.is_active !== false ? "DISABLE" : "ENABLE"}</button></td>
                     </tr>
                   ))}
                 </tbody>
@@ -379,17 +413,17 @@ export default function AdminDashboard({ user, articles, token, onRefresh, onBac
             <div style={{ marginTop: "20px", display: "flex", flexDirection: "column", gap: "15px" }}>
               {queries.length === 0 ? <p>No queries submitted yet.</p> : queries.map(q => (
                   <div key={q.id} style={{ backgroundColor: "#fff", border: "1px solid #161412", padding: "20px", opacity: q.is_resolved ? 0.6 : 1 }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "15px" }}>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", justifyContent: "space-between", marginBottom: "15px" }}>
                       <span style={{ fontSize: "12px", color: "#5E574C", fontWeight: "bold" }}>STORY #{q.article_id} • {q.created_at} {q.article_is_active === false && <span style={{ color: "#D32F2F", marginLeft: "10px" }}>(STORY DISABLED)</span>}</span>
                       <span style={{ fontSize: "12px", padding: "3px 8px", backgroundColor: q.is_resolved ? "#1F3A2E" : "#D32F2F", color: "#F3EEE3", fontWeight: "bold" }}>{q.is_resolved ? "RESOLVED" : "NEEDS ATTENTION"}</span>
                     </div>
                     <h3 style={{ margin: "0 0 10px 0", fontSize: "16px" }}>{q.article_title}</h3>
-                    <div style={{ backgroundColor: "#F3EEE3", padding: "15px", borderLeft: "3px solid #C9A227", fontStyle: "italic", marginBottom: "15px" }}>"{q.query_text}"</div>
+                    <div style={{ backgroundColor: "#F3EEE3", padding: "15px", borderLeft: "3px solid #C9A227", fontStyle: "italic", marginBottom: "15px", wordBreak: "break-word" }}>"{q.query_text}"</div>
                     
-                    <div style={{ display: "flex", gap: "10px" }}>
-                      <button onClick={() => resolveQuery(q.id)} style={{ padding: "8px 15px", backgroundColor: q.is_resolved ? "#EBE4D5" : "#161412", color: q.is_resolved ? "#161412" : "#F3EEE3", border: "1px solid #161412", cursor: "pointer", fontWeight: "bold" }}>{q.is_resolved ? "MARK UNRESOLVED" : "MARK RESOLVED"}</button>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
+                      <button onClick={() => resolveQuery(q.id)} style={{ padding: "8px 15px", backgroundColor: q.is_resolved ? "#EBE4D5" : "#161412", color: q.is_resolved ? "#161412" : "#F3EEE3", border: "1px solid #161412", cursor: "pointer", fontWeight: "bold", width: "100%", maxWidth: "200px" }}>{q.is_resolved ? "MARK UNRESOLVED" : "MARK RESOLVED"}</button>
                       {q.article_is_active !== false && !q.is_resolved && (
-                        <button onClick={() => disableArticleAndResolve(q.article_id, q.id)} style={{ padding: "8px 15px", backgroundColor: "#D32F2F", color: "#FFF", border: "none", cursor: "pointer", fontWeight: "bold" }}>DISABLE STORY & RESOLVE</button>
+                        <button onClick={() => disableArticleAndResolve(q.article_id, q.id)} style={{ padding: "8px 15px", backgroundColor: "#D32F2F", color: "#FFF", border: "none", cursor: "pointer", fontWeight: "bold", width: "100%", maxWidth: "250px" }}>DISABLE STORY & RESOLVE</button>
                       )}
                     </div>
                   </div>
@@ -402,19 +436,19 @@ export default function AdminDashboard({ user, articles, token, onRefresh, onBac
           <>
             <h1 style={{ fontFamily: "Georgia, serif", borderBottom: "2px solid #161412", paddingBottom: "10px" }}>Newsletter Subscribers</h1>
             
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "20px", marginBottom: "20px" }}>
-              <input type="text" placeholder="Search emails..." value={subSearch} onChange={(e) => setSubSearch(e.target.value)} style={{ padding: "10px 15px", width: "350px", border: "1px solid #C9C1B0", outline: "none" }} />
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", justifyContent: "space-between", alignItems: "center", marginTop: "20px", marginBottom: "20px" }}>
+              <input type="text" placeholder="Search emails..." value={subSearch} onChange={(e) => setSubSearch(e.target.value)} style={{ padding: "10px 15px", flex: "1", minWidth: "200px", maxWidth: "350px", border: "1px solid #C9C1B0", outline: "none" }} />
               
-              <form onSubmit={handleAddSubscriber} style={{ display: "flex", gap: "10px" }}>
-                <input type="email" required placeholder="Add new email..." value={newSubEmail} onChange={e => setNewSubEmail(e.target.value)} style={{ padding: "10px", border: "1px solid #C9C1B0", outline: "none" }} />
-                <button type="submit" disabled={subLoading} style={{ padding: "10px 15px", backgroundColor: "#161412", color: "#F3EEE3", border: "none", cursor: "pointer", fontWeight: "bold" }}>
-                  {subLoading ? "..." : "ADD SUBSCRIBER"}
+              <form onSubmit={handleAddSubscriber} style={{ display: "flex", gap: "10px", width: "100%", maxWidth: "400px" }}>
+                <input type="email" required placeholder="Add new email..." value={newSubEmail} onChange={e => setNewSubEmail(e.target.value)} style={{ padding: "10px", flex: 1, border: "1px solid #C9C1B0", outline: "none" }} />
+                <button type="submit" disabled={subLoading} style={{ padding: "10px 15px", backgroundColor: "#161412", color: "#F3EEE3", border: "none", cursor: "pointer", fontWeight: "bold", whiteSpace: "nowrap" }}>
+                  {subLoading ? "..." : "ADD"}
                 </button>
               </form>
             </div>
 
-            <div style={{ backgroundColor: "#fff", border: "1px solid #161412" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: "14px" }}>
+            <div className="table-responsive">
+              <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: "14px", minWidth: "700px" }}>
                 <thead>
                   <tr style={{ backgroundColor: "#EBE4D5", borderBottom: "1px solid #161412" }}>
                     <th style={{ padding: "12px 15px", width: "35%" }}>Email Address</th>
@@ -445,8 +479,8 @@ export default function AdminDashboard({ user, articles, token, onRefresh, onBac
                       </td>
                       <td style={{ padding: "12px 15px", textAlign: "right" }}>
                         <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px" }}>
-                          <button onClick={() => handleToggleSubscriber(sub.id)} style={{ padding: "6px 12px", border: sub.is_active ? "1px solid #8F7118" : "1px solid #1F3A2E", backgroundColor: sub.is_active ? "#fff" : "#1F3A2E", color: sub.is_active ? "#8F7118" : "#F3EEE3", cursor: "pointer", fontWeight: "bold", fontSize: "11px" }}>
-                            {sub.is_active ? "PAUSE EMAILS" : "RESUME EMAILS"}
+                          <button onClick={() => handleToggleSubscriber(sub.id)} style={{ padding: "6px 12px", border: sub.is_active ? "1px solid #8F7118" : "1px solid #1F3A2E", backgroundColor: sub.is_active ? "#fff" : "#1F3A2E", color: sub.is_active ? "#8F7118" : "#F3EEE3", cursor: "pointer", fontWeight: "bold", fontSize: "11px", whiteSpace: "nowrap" }}>
+                            {sub.is_active ? "PAUSE" : "RESUME"}
                           </button>
                           <button onClick={() => handleDeleteSubscriber(sub.id)} style={{ padding: "6px 12px", border: "1px solid #D32F2F", backgroundColor: "#D32F2F", color: "#F3EEE3", cursor: "pointer", fontWeight: "bold", fontSize: "11px" }}>
                             DELETE
@@ -476,20 +510,21 @@ export default function AdminDashboard({ user, articles, token, onRefresh, onBac
                 setFeeds([data.feed, ...feeds]);
                 setNewFeedName("");
                 setNewFeedUrl("");
+                if (onRefresh) onRefresh(); // NEW: Triggers global update
               } else {
                 setModal({ show: true, title: "Error", message: data.error, type: "alert" });
               }
-            }} style={{ display: "flex", gap: "10px", margin: "20px 0", backgroundColor: "#fff", padding: "20px", border: "1px solid #161412" }}>
-              <input type="text" placeholder="Feed Name (e.g. Wired)" value={newFeedName} onChange={e => setNewFeedName(e.target.value)} required style={{ padding: "10px", flex: 1, border: "1px solid #C9C1B0" }} />
-              <input type="url" placeholder="RSS URL (https://...)" value={newFeedUrl} onChange={e => setNewFeedUrl(e.target.value)} required style={{ padding: "10px", flex: 2, border: "1px solid #C9C1B0" }} />
-              <select value={newFeedCategory} onChange={e => setNewFeedCategory(e.target.value)} style={{ padding: "10px", border: "1px solid #C9C1B0" }}>
+            }} style={{ display: "flex", flexWrap: "wrap", gap: "10px", margin: "20px 0", backgroundColor: "#fff", padding: "20px", border: "1px solid #161412" }}>
+              <input type="text" placeholder="Feed Name (e.g. Wired)" value={newFeedName} onChange={e => setNewFeedName(e.target.value)} required style={{ padding: "10px", flex: "1 1 200px", border: "1px solid #C9C1B0", minWidth: "150px" }} />
+              <input type="url" placeholder="RSS URL (https://...)" value={newFeedUrl} onChange={e => setNewFeedUrl(e.target.value)} required style={{ padding: "10px", flex: "2 1 300px", border: "1px solid #C9C1B0", minWidth: "200px" }} />
+              <select value={newFeedCategory} onChange={e => setNewFeedCategory(e.target.value)} style={{ padding: "10px", border: "1px solid #C9C1B0", flex: "1 1 150px" }}>
                 <option value="Cybersecurity">Cybersecurity</option>
               </select>
-              <button type="submit" style={{ padding: "10px 20px", backgroundColor: "#161412", color: "#F3EEE3", border: "none", fontWeight: "bold", cursor: "pointer" }}>Add Feed</button>
+              <button type="submit" style={{ padding: "10px 20px", backgroundColor: "#161412", color: "#F3EEE3", border: "none", fontWeight: "bold", cursor: "pointer", flex: "1 1 100%" }}>Add Feed</button>
             </form>
 
-            <div style={{ backgroundColor: "#fff", border: "1px solid #161412" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: "14px" }}>
+            <div className="table-responsive">
+              <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: "14px", minWidth: "600px" }}>
                 <thead>
                   <tr style={{ backgroundColor: "#EBE4D5", borderBottom: "1px solid #161412" }}>
                     <th style={{ padding: "12px 15px" }}>Name</th>
@@ -515,7 +550,10 @@ export default function AdminDashboard({ user, articles, token, onRefresh, onBac
                       <td style={{ padding: "12px 15px", textAlign: "right" }}>
                         <button onClick={async () => {
                           const res = await fetch(`${API_BASE_URL}/admin/feeds/${feed.id}/`, { method: "POST", headers: { "Authorization": `Token ${authToken}` } });
-                          if (res.ok) setFeeds(feeds.map(f => f.id === feed.id ? { ...f, is_active: !f.is_active } : f));
+                          if (res.ok) {
+                            setFeeds(feeds.map(f => f.id === feed.id ? { ...f, is_active: !f.is_active } : f));
+                            if (onRefresh) onRefresh(); // NEW: Triggers global update
+                          }
                         }} style={{ padding: "6px 10px", marginRight: "8px", cursor: "pointer" }}>{feed.is_active ? "Pause" : "Resume"}</button>
                         <button onClick={async () => {
                           setModal({
@@ -525,7 +563,10 @@ export default function AdminDashboard({ user, articles, token, onRefresh, onBac
                             type: "confirm",
                             onConfirm: async () => {
                               const res = await fetch(`${API_BASE_URL}/admin/feeds/${feed.id}/`, { method: "DELETE", headers: { "Authorization": `Token ${authToken}` } });
-                              if (res.ok) setFeeds(feeds.filter(f => f.id !== feed.id));
+                              if (res.ok) {
+                                setFeeds(feeds.filter(f => f.id !== feed.id));
+                                if (onRefresh) onRefresh(); // NEW: Triggers global update
+                              }
                               setModal({ show: false });
                             }
                           });
@@ -543,13 +584,17 @@ export default function AdminDashboard({ user, articles, token, onRefresh, onBac
           <BlogManagement authToken={authToken} />
         )}
 
+        {view === "books" && (
+          <BookManagement authToken={authToken} />
+        )}
+
         {view === "social" && (
           <>
             <h1 style={{ fontFamily: "Georgia, serif", borderBottom: "2px solid #161412", paddingBottom: "10px" }}>Social Media Links</h1>
             <p style={{ color: "#5E574C", marginBottom: "20px", marginTop: "10px" }}>Provide the links below. Only channels with entered URLs will appear in the site footer.</p>
             
             <form onSubmit={saveSocial} style={{ backgroundColor: "#fff", border: "1px solid #161412", padding: "30px", maxWidth: "800px" }}>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "20px", marginBottom: "20px" }}>
+              <div className="form-grid">
                 <div>
                   <label style={labelStyle}>TWITTER / X URL</label>
                   <input type="url" placeholder="https://twitter.com/..." value={socialForm.twitter} onChange={e => setSocialForm({...socialForm, twitter: e.target.value})} style={inputStyle} />
@@ -566,13 +611,13 @@ export default function AdminDashboard({ user, articles, token, onRefresh, onBac
                   <label style={labelStyle}>INSTAGRAM URL</label>
                   <input type="url" placeholder="https://instagram.com/..." value={socialForm.insta} onChange={e => setSocialForm({...socialForm, insta: e.target.value})} style={inputStyle} />
                 </div>
-                <div>
+                <div style={{ gridColumn: "1 / -1" }}>
                   <label style={labelStyle}>FACEBOOK URL</label>
                   <input type="url" placeholder="https://facebook.com/..." value={socialForm.facebook} onChange={e => setSocialForm({...socialForm, facebook: e.target.value})} style={inputStyle} />
                 </div>
               </div>
-              <div style={{ borderTop: "1px solid #EBE4D5", paddingTop: "20px", display: "flex", justifyContent: "flex-end" }}>
-                <button type="submit" disabled={socialSaving} style={{ padding: "12px 24px", backgroundColor: "#161412", color: "#F3EEE3", border: "none", fontWeight: "bold", cursor: "pointer" }}>{socialSaving ? "SAVING..." : "SAVE SOCIAL LINKS"}</button>
+              <div style={{ borderTop: "1px solid #EBE4D5", paddingTop: "20px", marginTop: "20px", display: "flex", justifyContent: "flex-end" }}>
+                <button type="submit" disabled={socialSaving} style={{ padding: "12px 24px", backgroundColor: "#161412", color: "#F3EEE3", border: "none", fontWeight: "bold", cursor: "pointer", width: "100%", maxWidth: "200px" }}>{socialSaving ? "SAVING..." : "SAVE SOCIAL LINKS"}</button>
               </div>
             </form>
           </>
@@ -580,10 +625,10 @@ export default function AdminDashboard({ user, articles, token, onRefresh, onBac
 
         {view === "smtp" && (
           <>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "2px solid #161412", paddingBottom: "10px" }}>
-              <h1 style={{ fontFamily: "Georgia, serif", margin: 0 }}>Email Configuration</h1>
-              <button onClick={triggerMassBlast} disabled={blastLoading} style={{ padding: "10px 20px", backgroundColor: "#C9A227", color: "#161412", border: "2px solid #161412", fontWeight: "bold", cursor: "pointer" }}>
-                {blastLoading ? "SENDING BLAST..." : "▶ SEND DAILY BLAST NOW"}
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "15px", justifyContent: "space-between", alignItems: "center", borderBottom: "2px solid #161412", paddingBottom: "10px" }}>
+              <h1 style={{ fontFamily: "Georgia, serif", margin: 0 }}>Email Config</h1>
+              <button onClick={triggerMassBlast} disabled={blastLoading} style={{ padding: "10px 20px", backgroundColor: "#C9A227", color: "#161412", border: "2px solid #161412", fontWeight: "bold", cursor: "pointer", whiteSpace: "nowrap" }}>
+                {blastLoading ? "SENDING BLAST..." : "▶ SEND BLAST NOW"}
               </button>
             </div>
             <p style={{ color: "#5E574C", marginBottom: "20px", marginTop: "10px" }}>Configure SMTP to allow the desk to send newsletters and subscription alerts.</p>
@@ -593,17 +638,17 @@ export default function AdminDashboard({ user, articles, token, onRefresh, onBac
                 <h3 style={{ margin: "0 0 10px 0", fontSize: "15px" }}>Automated Daily Briefing</h3>
                 <label style={labelStyle}>DAILY SEND TIME (24H FORMAT)</label>
                 
-                <div style={{ display: "flex", gap: "10px" }}>
+                <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
                   <select value={timeObj.hour} onChange={e => handleTimeChange('hour', e.target.value)} style={{ ...inputStyle, width: "80px", cursor: "pointer", textAlign: "center" }}>
                     {hourOptions.map(h => <option key={h} value={h}>{h}</option>)}
                   </select>
-                  <span style={{ fontSize: "24px", fontWeight: "bold", alignSelf: "center" }}>:</span>
+                  <span style={{ fontSize: "24px", fontWeight: "bold" }}>:</span>
                   <input type="number" min="0" max="59" value={timeObj.min} onChange={e => handleTimeChange('min', e.target.value)} onBlur={handleTimeBlur} style={{ ...inputStyle, width: "80px", textAlign: "center" }} />
                 </div>
                 <p style={{ fontSize: "12px", color: "#5E574C", margin: "12px 0 0 0" }}>Set the exact time (00:00 - 23:59) the server should automatically email all subscribers.</p>
               </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px", marginBottom: "20px" }}>
+              <div className="form-grid" style={{ marginBottom: "20px" }}>
                 <div><label style={labelStyle}>SENDER NAME</label><input required type="text" value={smtpForm.name} onChange={e => setSmtpForm({...smtpForm, name: e.target.value})} style={inputStyle} /></div>
                 <div><label style={labelStyle}>SENDER EMAIL</label><input required type="email" value={smtpForm.email} onChange={e => setSmtpForm({...smtpForm, email: e.target.value})} style={inputStyle} /></div>
                 <div><label style={labelStyle}>REPLY-TO EMAIL (Optional)</label><input type="email" value={smtpForm.reply_to} onChange={e => setSmtpForm({...smtpForm, reply_to: e.target.value})} style={inputStyle} /></div>
@@ -614,7 +659,7 @@ export default function AdminDashboard({ user, articles, token, onRefresh, onBac
                 <div><label style={labelStyle}>SMTP PASSWORD</label><input type="password" value={smtpForm.password} onChange={e => setSmtpForm({...smtpForm, password: e.target.value})} style={inputStyle} placeholder="Leave blank to keep existing" /></div>
               </div>
               <div style={{ borderTop: "1px solid #EBE4D5", paddingTop: "20px", display: "flex", justifyContent: "flex-end" }}>
-                <button type="submit" disabled={smtpSaving} style={{ padding: "12px 24px", backgroundColor: "#161412", color: "#F3EEE3", border: "none", fontWeight: "bold", cursor: "pointer" }}>{smtpSaving ? "SAVING..." : "SAVE CONFIGURATION"}</button>
+                <button type="submit" disabled={smtpSaving} style={{ padding: "12px 24px", backgroundColor: "#161412", color: "#F3EEE3", border: "none", fontWeight: "bold", cursor: "pointer", width: "100%", maxWidth: "250px" }}>{smtpSaving ? "SAVING..." : "SAVE CONFIGURATION"}</button>
               </div>
             </form>
           </>

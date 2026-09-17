@@ -3,34 +3,48 @@ import { API_BASE_URL } from "../config";
 
 const localImages = [
   "/images/news_1.jpg", "/images/news_2.jpg", "/images/news_3.jpg",
-  "/images/news_4.jpg", "/images/news_5.jpg", "/images/news_6.jpg", "/images/news_7.jpg",
+  "/images/news_4.jpg", "/images/news_5.jpg", "/images/news_6.jpg", 
+  "/images/news_7.jpg", "/images/news_8.jpg", "/images/news_9.jpg", 
+  "/images/news_10.jpg", "/images/news_11.jpg", "/images/news_12.jpg", 
+  "/images/news_13.jpg", "/images/news_14.jpg", "/images/news_15.jpg",
 ];
 
-export default function NewsCard({ article, index }) {
+// Helper to get a persistent image per article ID
+const getArticleImage = (article) => {
+  if (!article) return localImages[0];
+  const numericId = Number(article.id) || Math.abs(article.title?.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0)) || 1;
+  return localImages[numericId % localImages.length];
+};
+
+export default function NewsCard({ article, index, onArticleClick }) {
   const [speaking, setSpeaking] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [queryText, setQueryText] = useState("");
   const [submitStatus, setSubmitStatus] = useState(null);
 
-  // Custom Website Modal State
   const [modal, setModal] = useState({ show: false, title: "", message: "" });
 
+  // UPDATED: Now strictly cuts off at 50 words
+  const getTruncatedSummary = (text) => {
+    if (!text) return "Summary unavailable.";
+    const words = text.split(/\s+/);
+    if (words.length > 50) {
+      return words.slice(0, 50).join(" ") + "...";
+    }
+    return text;
+  };
+
   const handleListen = () => {
-    // If this card is already speaking, pause it and reset state
     if (speaking) {
       window.audioPlayer?.pause();
       setSpeaking(false);
       return;
     }
-
-    // Stop any other audio currently playing on the site (like the Navbar briefing)
     if (window.audioPlayer) {
       window.audioPlayer.pause();
     }
 
     const textToSpeak = article.summary || article.title || "Summary unavailable.";
-    
-    // Call the Django backend endpoint for the premium neural MP3
     const audioUrl = `${API_BASE_URL}/audio/?text=${encodeURIComponent(textToSpeak)}`;
     window.audioPlayer = new Audio(audioUrl);
     
@@ -38,7 +52,6 @@ export default function NewsCard({ article, index }) {
     window.audioPlayer.onended = () => setSpeaking(false);
     window.audioPlayer.onerror = () => setSpeaking(false);
 
-    // If another audio source interrupts this one, update the play button back to "LISTEN"
     window.audioPlayer.addEventListener("pause", () => {
       setSpeaking(false);
     });
@@ -49,8 +62,16 @@ export default function NewsCard({ article, index }) {
     });
   };
 
-  const handleOpen = () => {
+  const handleOpenExternal = () => {
     if (article.link) window.open(article.link, "_blank", "noopener,noreferrer");
+  };
+
+  const handleCardClick = () => {
+    if (onArticleClick) {
+      onArticleClick(article);
+    } else {
+      handleOpenExternal();
+    }
   };
 
   const submitQuery = async () => {
@@ -79,16 +100,16 @@ export default function NewsCard({ article, index }) {
     }
   };
 
+  const articleImage = getArticleImage(article);
+
   return (
     <article 
       className={`news-card ${index % 2 ? "reverse" : ""}`} 
       style={{ position: "relative", cursor: "pointer", transition: "opacity 0.2s" }}
-      onClick={handleOpen}
+      onClick={handleCardClick}
       onMouseOver={(e) => e.currentTarget.style.opacity = "0.9"}
       onMouseOut={(e) => e.currentTarget.style.opacity = "1"}
     >
-      
-      {/* Custom Website Modal Popup */}
       {modal.show && (
         <div 
           onClick={(e) => e.stopPropagation()} 
@@ -104,7 +125,8 @@ export default function NewsCard({ article, index }) {
         </div>
       )}
 
-      <img className="news-image" src={localImages[index % localImages.length]} alt="" />
+      {/* Persistent Article Image */}
+      <img className="news-image" src={articleImage} alt="" />
 
       <div className="news-content">
         <div className="meta">
@@ -115,7 +137,9 @@ export default function NewsCard({ article, index }) {
 
         <h2>{article.title || article.original_title}</h2>
         <div className="rule" />
-        <p>{article.summary || "Summary unavailable."}</p>
+        
+        {/* Render 50-word Truncated Summary */}
+        <p>{getTruncatedSummary(article.summary)}</p>
 
         <div className="card-bottom" style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
           <button 
@@ -135,15 +159,14 @@ export default function NewsCard({ article, index }) {
 
           <button 
             className="read" 
-            onClick={(e) => { e.stopPropagation(); handleOpen(); }} 
+            onClick={(e) => { e.stopPropagation(); handleCardClick(); }} 
             style={{ marginLeft: "auto" }}
           >
-            READ FULL STORY <span>→</span>
+            VIEW DETAILS <span>→</span>
           </button>
         </div>
       </div>
 
-      {/* QUERY MODAL */}
       {showModal && (
         <div 
           onClick={(e) => e.stopPropagation()} 

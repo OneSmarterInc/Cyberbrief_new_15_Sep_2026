@@ -1,27 +1,58 @@
 import hashlib
 import re
+import html
 from datetime import timedelta
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import requests
 import feedparser
-from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
+from transformers import AutoTokenizer, AutoModelForCausalLM
 from django.db import close_old_connections
 from django.utils import timezone
 
 from .models import Article, RSSFeed
 
-# Read directly from the local folder we just created!
-MODEL_PATH = "./ai_model"
+# Configured to load directly from your local ai_model folder
+MODEL_PATH = "./ai_model" 
 tokenizer = AutoTokenizer.from_pretrained(MODEL_PATH)
-model = AutoModelForSeq2SeqLM.from_pretrained(MODEL_PATH)
+model = AutoModelForCausalLM.from_pretrained(MODEL_PATH)
 
 def clean_text(value):
-    text = re.sub(r"<[^>]+>", " ", value or "")
+    if not value:
+        return ""
+    text = html.unescape(value)
+    text = re.sub(r'&#[a-zA-Z0-9;]+', "'", text) 
+    text = text.replace("&#xd", "").replace("&#xD", "")
+    text = text.replace("\r", " ").replace("\n", " ")
+    text = re.sub(r"<[^>]+>", " ", text)
     return " ".join(text.split())
 
+def strip_ai_artifacts(text):
+    if not text:
+        return ""
+    
+    # 1. Strip chat filler or echoed prompts
+    text = re.sub(r'^(here is|summary:|assistant:|sure).*?:', '', text, flags=re.IGNORECASE)
+    
+    # 2. Strip first-person speaker leakage (e.g. "I'm excited to share", "I have planned")
+    text = re.sub(r"(?:i'm|i am|i have|i've)\s+(?:excited to share|planned|announced|noted).*?(?:\.|:)", "", text, flags=re.IGNORECASE)
+
+    # 3. Strip Markdown code blocks, backticks (e.g., ```csharp, `code`)
+    text = re.sub(r'```[a-zA-Z]*', '', text)  # Removes triple backticks and language tags
+    text = text.replace('`', '')               # Removes single inline code backticks
+
+    # 4. Strip non-English / stray foreign characters (like CJK ideographs/symbols breaking English text)
+    text = re.sub(r'[\u4e00-\u9fff\u3000-\u30ff]', '', text)
+
+    # 5. Clean brackets and syntax clutter
+    text = re.sub(r'\([^)]*\)', '', text)                    
+    text = re.sub(r'\[.*?\]', '', text)                       
+    text = re.sub(r'[\(\)\[\]\{\}\|\<\>\~_#\*\\/]', ' ', text)
+    text = re.sub(r'\s*[,;:\-\.]\s*[,;:\-\.]+', '.', text)    
+    text = re.sub(r'\s{2,}', ' ', text)                       
+    return text.strip()
+
 def detect_category(title, summary, default_category=None):
-    # The platform is now strictly for Cybersecurity
     return "Cybersecurity"
 
 def make_guid(source, link, title):
@@ -34,15 +65,13 @@ def reset_article_database():
 
 def get_active_feeds():
     feeds = RSSFeed.objects.filter(is_active=True)
-    # Fallback default feeds dedicated to Cybersecurity
     if not feeds.exists():
         return [
-            {"name": "The Hacker News", "url": "https://feeds.feedburner.com/TheHackersNews", "category": "Cybersecurity"},
-            {"name": "BleepingComputer", "url": "https://www.bleepingcomputer.com/feed/", "category": "Cybersecurity"},
-            {"name": "Krebs on Security", "url": "https://krebsonsecurity.com/feed/", "category": "Cybersecurity"},
-            {"name": "Dark Reading", "url": "https://www.darkreading.com/rss.xml", "category": "Cybersecurity"},
+            {"name": "The Hacker News", "url": "[https://feeds.feedburner.com/TheHackersNews](https://feeds.feedburner.com/TheHackersNews)", "category": "Cybersecurity"},
+            {"name": "BleepingComputer", "url": "[https://www.bleepingcomputer.com/feed/](https://www.bleepingcomputer.com/feed/)", "category": "Cybersecurity"},
+            {"name": "Krebs on Security", "url": "[https://krebsonsecurity.com/feed/](https://krebsonsecurity.com/feed/)", "category": "Cybersecurity"},
+            {"name": "Dark Reading", "url": "[https://www.darkreading.com/rss.xml](https://www.darkreading.com/rss.xml)", "category": "Cybersecurity"},
         ]
-    # Force everything to the Cybersecurity category
     return [{"name": f.name, "url": f.url, "category": "Cybersecurity"} for f in feeds]
 
 def fetch_feed_data(feed_info):
@@ -60,12 +89,10 @@ def fetch_feed_data(feed_info):
 def fetch_and_store_news():
     close_old_connections()
     
-    # --- AUTOMATIC 30-DAY PURGE ---
     thirty_days_ago = timezone.now() - timedelta(days=30)
     expired_count, _ = Article.objects.filter(created_at__lt=thirty_days_ago).delete()
     if expired_count > 0:
         print(f"Database Cleanup: Purged {expired_count} stories older than 30 days.")
-    # ------------------------------
 
     current_rss_feeds = get_active_feeds()
     raw_items = []
@@ -95,7 +122,7 @@ def fetch_and_store_news():
                 source=feed_info["name"],
                 category=category,
                 title=title,
-                ai_headline="",  # Marks pending for AI summary
+                ai_headline="",  
                 summary=raw_summary,
                 link=link,
                 published=clean_text(item.get("published") or item.get("updated") or ""),
@@ -105,28 +132,83 @@ def fetch_and_store_news():
 
     print(f"Live Scan Complete: Checked {len(raw_items)} articles. Added {new_found} new.")
 
-    # PHASE 2: Generate summaries for newly added entries
+    # PHASE 2: Qwen2.5 Chat-Template Summarization Pipeline
     pending_articles = Article.objects.filter(ai_headline="")
     if pending_articles.exists():
-        print(f"AI Model Processing {pending_articles.count()} unsummarized articles...")
+        print(f"AI Model Processing {pending_articles.count()} unsummarized articles with Qwen2.5...")
 
     for art in pending_articles:
-        input_text = f"{art.title}. {art.summary}"
-        if len(input_text.split()) < 20:
-            final_summary = input_text
+        cleaned_title = clean_text(art.title)
+        cleaned_raw_summary = clean_text(art.summary)
+        
+        if len(cleaned_raw_summary.split()) < 10:
+            content_to_use = f"A cybersecurity report and technical advisory focusing on: {cleaned_title}."
         else:
-            try:
-                inputs = tokenizer(input_text, max_length=1024, truncation=True, return_tensors="pt")
-                output = model.generate(
-                    **inputs, 
-                    max_length=75,
-                    min_length=45,
-                    do_sample=False
+            content_to_use = cleaned_raw_summary
+
+        # Strict system instruction enforcing objective third-person reporting and clean plain English
+        messages = [
+            {
+                "role": "system", 
+                "content": (
+                    "You are a strict, zero-hallucination cybersecurity news editor. "
+                    "Summarize the provided text accurately and objectively in plain English (80-120 words). "
+                    "CRITICAL RULES:\n"
+                    "1. Use ONLY facts explicitly stated in the source text. Do not extrapolate.\n"
+                    "2. NEVER add historical comparisons, corporate boilerplate (e.g., 'commitment to security'), or unverified impacts.\n"
+                    "3. If details are sparse, keep the summary brief and factual based solely on the title and provided snippet.\n"
+                    "4. Do not repeat the title."
                 )
-                final_summary = tokenizer.decode(output[0], skip_special_tokens=True)
-            except Exception as exc:
-                print(f"AI Error on '{art.title[:20]}': {exc}")
-                continue
+            },
+            {"role": "user", "content": f"Title: {cleaned_title}\n\nContent: {content_to_use}"}
+        ]
+        
+        try:
+            text_input = tokenizer.apply_chat_template(
+                messages,
+                tokenize=False,
+                add_generation_prompt=True
+            )
+            
+            inputs = tokenizer([text_input], return_tensors="pt").to(model.device)
+            
+            outputs = model.generate(
+                **inputs,
+                max_new_tokens=220,     
+                min_new_tokens=100,     
+                temperature=0.3,
+                do_sample=True,
+                top_p=0.9,
+                repetition_penalty=1.15 
+            )
+            
+            generated_tokens = outputs[0][inputs["input_ids"].shape[-1]:]
+            raw_summary = tokenizer.decode(generated_tokens, skip_special_tokens=True)
+            final_summary = strip_ai_artifacts(raw_summary)
+            
+        except Exception as exc:
+            print(f"AI Error on '{art.title[:20]}': {exc}")
+            continue
+
+        # Post-Processing & Formatting Rules
+        if final_summary:
+            if final_summary.lower().startswith(cleaned_title.lower()):
+                final_summary = final_summary[len(cleaned_title):].strip()
+            
+            final_summary = re.sub(r'^[^a-zA-Z0-9]+', '', final_summary).strip()
+            
+            if len(final_summary) > 0:
+                final_summary = final_summary[0].upper() + final_summary[1:]
+            
+            if not final_summary.endswith((".", "!", "?")):
+                last_punctuation = max(final_summary.rfind("."), final_summary.rfind("!"), final_summary.rfind("?"))
+                if last_punctuation > len(final_summary) * 0.5:
+                    final_summary = final_summary[:last_punctuation+1]
+                else:
+                    final_summary += "."
+
+        if len(final_summary.split()) < 15:
+            final_summary = f"Comprehensive cybersecurity coverage regarding {cleaned_title}. Read the complete analysis via the original source link provided below."
 
         art.ai_headline = art.title[:500]
         art.summary = final_summary[:2000]
@@ -137,3 +219,4 @@ def fetch_and_store_news():
 
 def get_stored_news():
     return Article.objects.all().order_by("-id")
+

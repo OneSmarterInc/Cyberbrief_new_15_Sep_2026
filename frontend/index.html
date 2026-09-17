@@ -3,10 +3,37 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>CyberBreaf</title>
+    <title>Cyberbriefs</title>
+    <!-- Corrected type to image/png for a .png file -->
+    <link rel="icon" type="image/png" href="/images/logo.png" />
+    
+    <style>
+      /* CSS to make any image a perfect circle */
+      .circle-logo {
+        width: 120px;         /* Set width */
+        height: 120px;        /* Set height to match width */
+        border-radius: 50%;   /* This makes it a circle */
+        object-fit: cover;    /* Prevents the image from stretching */
+        border: 3px solid #161412; /* Optional: adds a nice border from your theme */
+      }
+
+      /* CSS to center the loading image on the screen */
+      .loading-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        background-color: #F3EEE3; /* Your theme's background color */
+      }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <!-- This will show as a circular loading image until React loads and overrides it -->
+      <div class="loading-container">
+        <img src="/images/logo.png" alt="Loading Cyberbriefs..." class="circle-logo" />
+      </div>
+    </div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

@@ -1,6 +1,7 @@
 import React, { useMemo } from "react";
 
-export default function TheWire({ articles, selectedCategory = "All" }) {
+// ADDED onArticleClick TO THE PROPS
+export default function TheWire({ articles, selectedCategory = "All", onArticleClick }) {
   // Grab exactly 10 random, active stories filtered by category
   const wireArticles = useMemo(() => {
     if (!articles || articles.length === 0) return [];
@@ -34,7 +35,7 @@ export default function TheWire({ articles, selectedCategory = "All" }) {
       
       {/* Add a quick hover effect for the links */}
       <style>{`
-        .wire-clickable { text-decoration: none; color: inherit; display: flex; transition: opacity 0.2s; }
+        .wire-clickable { text-decoration: none; color: inherit; display: flex; transition: opacity 0.2s; cursor: pointer; }
         .wire-clickable:hover { opacity: 0.75; }
       `}</style>
 
@@ -58,10 +59,15 @@ export default function TheWire({ articles, selectedCategory = "All" }) {
             if (isBreach) badgeText = "adds to breach story";
 
             return (
-              <a 
-                href={article.link} 
-                target="_blank" 
-                rel="noopener noreferrer" 
+              // REPLACED <a href> WITH <div onClick>
+              <div 
+                onClick={() => {
+                  if (onArticleClick) {
+                    onArticleClick(article);
+                  } else if (article.link) {
+                    window.open(article.link, "_blank", "noopener,noreferrer");
+                  }
+                }}
                 key={article.id || i} 
                 className="wire-clickable"
                 style={{ gap: "15px", paddingBottom: "20px", marginBottom: "20px", borderBottom: "1px solid rgba(243, 238, 227, 0.1)" }}
@@ -80,7 +86,7 @@ export default function TheWire({ articles, selectedCategory = "All" }) {
                     {article.source || "News Source"} · <span style={{ color: badgeText !== "new story" ? "#C9A227" : "#C9C1B0" }}>{badgeText}</span>
                   </div>
                 </div>
-              </a>
+              </div>
             );
           })
         ) : (

@@ -1,24 +1,153 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import NewsCard from "./NewsCard";
 import TheWire from "./TheWire";
 
 const localImages = [
   "/images/news_1.jpg", "/images/news_2.jpg", "/images/news_3.jpg",
-  "/images/news_4.jpg", "/images/news_5.jpg", "/images/news_6.jpg", "/images/news_7.jpg",
+  "/images/news_4.jpg", "/images/news_5.jpg", "/images/news_6.jpg", 
+  "/images/news_7.jpg", "/images/news_8.jpg", "/images/news_9.jpg", 
+  "/images/news_10.jpg", "/images/news_11.jpg", "/images/news_12.jpg", 
+  "/images/news_13.jpg", "/images/news_14.jpg", "/images/news_15.jpg",
 ];
+
+const getArticleImage = (article) => {
+  if (!article) return localImages[0];
+  // If article has a numeric ID, use it. Otherwise, generate a hash from its title/guid.
+  const numericId = Number(article.id) || Math.abs(article.title?.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0)) || 1;
+  return localImages[numericId % localImages.length];
+};
 
 export default function HomeFeed({ 
   searchQuery, filteredArticles, currentArticles, loading, error, refreshing, fetchNews,
   currentPage, totalPages, handlePageChange, articles, selectedCategory 
 }) {
   
-  // Custom Website Modal State (replaces browser native alerts/confirms)
+  // Custom Website Modal State
   const [modal, setModal] = useState({ show: false, title: "", message: "", type: "alert", onConfirm: null });
+  
+  // State: Tracks which article the user clicked on to view details
+  const [selectedArticle, setSelectedArticle] = useState(null);
+
+  // Scroll to the top automatically when opening or closing an article
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [selectedArticle]);
 
   const mainArticles = currentArticles.slice(0, 3);
   const morningArticles = currentArticles.slice(3, 6);
   const briefArticles = currentArticles.slice(6, 14);
 
+  // --- PROFESSIONAL DETAILED ARTICLE VIEW ---
+  if (selectedArticle) {
+    // STRICTLY USE LOCAL IMAGE: Matches exactly what was shown in the feed
+    const displayImage = localImages[selectedArticle.id % localImages.length];
+    
+    // Generate a consistent color for the tiny source avatar
+    let hash = 0;
+    const sourceName = selectedArticle.source || "News";
+    for (let i = 0; i < sourceName.length; i++) hash = sourceName.charCodeAt(i) + ((hash << 5) - hash);
+    const avatarColor = "#" + "00000".substring(0, 6 - (hash & 0x00FFFFFF).toString(16).toUpperCase().length) + (hash & 0x00FFFFFF).toString(16).toUpperCase();
+    
+    return (
+      <div style={{ maxWidth: "950px", margin: "0 auto", padding: "40px 20px", width: "100%" }}>
+        
+        {/* MATCHED WEBSITE THEME: Changed background to #F3EEE3 and border to #161412 */}
+        <div style={{ backgroundColor: "#F3EEE3", borderRadius: "8px", border: "1px solid #161412", overflow: "hidden", boxShadow: "0 8px 30px rgba(0,0,0,0.08)" }}>
+          
+          {/* Hero Image with Gradient Overlay */}
+          <div style={{ position: "relative", width: "100%", height: "450px", backgroundColor: "#111" }}>
+            <img 
+              src={displayImage} 
+              alt="Article Cover" 
+              style={{ width: "100%", height: "100%", objectFit: "cover" }} 
+            />
+            
+            {/* Dark Gradient Overlay for Text Readability */}
+            <div style={{ 
+              position: "absolute", 
+              bottom: 0, left: 0, right: 0, 
+              background: "linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.5) 60%, transparent 100%)",
+              padding: "50px 40px 30px 40px",
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "flex-end"
+            }}>
+              {/* Editorial Serif Header matching the rest of the site */}
+              <h1 style={{ fontFamily: "Georgia, serif", fontSize: "36px", color: "#F3EEE3", margin: "0 0 20px 0", lineHeight: "1.25", fontWeight: "bold" }}>
+                {selectedArticle.ai_headline || selectedArticle.title}
+              </h1>
+              
+              {/* Author / Source Meta Bar */}
+              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                <div style={{ 
+                  width: "36px", height: "36px", borderRadius: "50%", backgroundColor: avatarColor, 
+                  display: "flex", alignItems: "center", justifyContent: "center", 
+                  color: "#F3EEE3", fontWeight: "bold", fontSize: "16px", border: "2px solid #F3EEE3"
+                }}>
+                  {sourceName.charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <div style={{ fontSize: "14px", fontWeight: "bold", color: "#F3EEE3", letterSpacing: "0.5px" }}>
+                    {sourceName}
+                  </div>
+                  <div style={{ fontSize: "13px", color: "#C9C1B0", marginTop: "2px" }}>
+                    {selectedArticle.published || "Recently Added"}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Article Content Section */}
+          <div style={{ padding: "40px" }}>
+            
+            <p style={{ fontSize: "18px", color: "#161412", lineHeight: "1.8", margin: "0 0 50px 0", fontFamily: "Arial, sans-serif" }}>
+              {selectedArticle.summary || "No summary is available for this article at this time. Click the original article link below to read the full coverage."}
+            </p>
+            
+            {/* Professional Footer Actions */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid #C9C1B0", paddingTop: "25px" }}>
+              
+              <a 
+                href={selectedArticle.link} 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                style={{ color: "#d32f2f", textDecoration: "none", fontSize: "15px", display: "flex", alignItems: "center", gap: "6px", transition: "opacity 0.2s", fontWeight: "bold" }}
+                onMouseOver={e => e.currentTarget.style.opacity = "0.7"}
+                onMouseOut={e => e.currentTarget.style.opacity = "1"}
+              >
+                Original Article 
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                  <polyline points="15 3 21 3 21 9"></polyline>
+                  <line x1="10" y1="14" x2="21" y2="3"></line>
+                </svg>
+              </a>
+
+              <button 
+                onClick={() => setSelectedArticle(null)}
+                style={{ 
+                  backgroundColor: "#d32f2f", color: "#ffffff", border: "none", 
+                  padding: "10px 20px", fontWeight: "bold", cursor: "pointer", 
+                  borderRadius: "4px", fontSize: "14px", display: "flex", alignItems: "center", gap: "8px",
+                  transition: "background 0.2s, transform 0.1s" 
+                }}
+                onMouseOver={e => e.currentTarget.style.backgroundColor = "#b71c1c"}
+                onMouseOut={e => e.currentTarget.style.backgroundColor = "#d32f2f"}
+                onMouseDown={e => e.currentTarget.style.transform = "scale(0.98)"}
+                onMouseUp={e => e.currentTarget.style.transform = "scale(1)"}
+              >
+                <span style={{ fontSize: "16px", marginBottom: "2px" }}>←</span> Back to Feed
+              </button>
+
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // --- STANDARD HOME FEED VIEW ---
   return (
     <div className="layout-container" style={{ display: "flex", maxWidth: "1550px", margin: "0 auto", width: "100%", padding: "20px 15px", gap: "25px", position: "relative" }}>
       
@@ -47,7 +176,7 @@ export default function HomeFeed({
         .wire-sidebar { width: 420px; flex-shrink: 0; }
         .page-content { flex: 1; min-width: 0; }
         .most-covered-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
-        .clickable-card { text-decoration: none; color: inherit; display: flex; transition: opacity 0.2s; }
+        .clickable-card { text-decoration: none; color: inherit; display: flex; transition: opacity 0.2s; cursor: pointer; }
         .clickable-card:hover { opacity: 0.85; }
         @media (max-width: 1024px) {
           .layout-container { flex-direction: column; }
@@ -87,24 +216,36 @@ export default function HomeFeed({
             ) : (
               <>
                 {mainArticles.map((article, index) => (
-                  <NewsCard key={article.id} article={article} index={index} />
+                  <NewsCard 
+                    key={article.id} 
+                    article={article} 
+                    index={index} 
+                    onArticleClick={setSelectedArticle} 
+                  />
                 ))}
 
                 {morningArticles.length > 0 && (
                   <section style={{ marginTop: "50px", paddingTop: "30px", borderTop: "2px solid #161412" }}>
                     <div style={{ display: "flex", alignItems: "baseline", gap: "15px", marginBottom: "25px" }}>
-                      <h2 style={{ fontFamily: "Georgia, serif", fontSize: "26px", color: "#161412", margin: 0 }}>Most covered this morning</h2>
+                      <h2 style={{ fontFamily: "Georgia, serif", fontSize: "26px", color: "#161412", margin: 0 }}>Discover More Articles</h2>
                       <span style={{ fontSize: "13px", color: "#5E574C" }}>ranked by how many outlets are on the story</span>
                     </div>
                     
                     <div className="most-covered-grid">
-                      {morningArticles.map((article, idx) => {
+                      {morningArticles.map((article) => {
                         const randomSources = Math.floor(Math.random() * 5) + 3;
+                        const displayImage = localImages[article.id % localImages.length];
+
                         return (
-                          <a href={article.link} target="_blank" rel="noopener noreferrer" key={article.id} className="clickable-card" style={{ flexDirection: "column" }}>
+                          <div 
+                            onClick={() => setSelectedArticle(article)} 
+                            key={article.id} 
+                            className="clickable-card" 
+                            style={{ flexDirection: "column" }}
+                          >
                             <div style={{ height: "130px", marginBottom: "15px", position: "relative", overflow: "hidden" }}>
                               <img 
-                                src={localImages[(idx + 3) % localImages.length]} 
+                                src={displayImage} 
                                 alt="" 
                                 style={{ width: "100%", height: "100%", objectFit: "cover" }} 
                               />
@@ -127,7 +268,7 @@ export default function HomeFeed({
                                 Updated {new Date(article.published || Date.now()).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
                               </span>
                             </div>
-                          </a>
+                          </div>
                         );
                       })}
                     </div>
@@ -162,7 +303,11 @@ export default function HomeFeed({
       </main>
 
       <div className="wire-sidebar">
-        <TheWire articles={articles} selectedCategory={selectedCategory} />
+        <TheWire 
+          articles={articles} 
+          selectedCategory={selectedCategory} 
+          onArticleClick={setSelectedArticle} 
+        />
 
         {briefArticles.length > 0 && (
           <section style={{ marginTop: "40px", paddingTop: "10px" }}>
@@ -171,19 +316,24 @@ export default function HomeFeed({
             
             <div style={{ display: "flex", flexDirection: "column" }}>
               {briefArticles.map((article, idx) => (
-                <a href={article.link} target="_blank" rel="noopener noreferrer" key={article.id} className="clickable-card" style={{ gap: "15px", borderBottom: "1px solid #C9C1B0", paddingBottom: "15px", marginBottom: "15px" }}>
+                <div 
+                  onClick={() => setSelectedArticle(article)} 
+                  key={article.id} 
+                  className="clickable-card" 
+                  style={{ gap: "15px", borderBottom: "1px solid #C9C1B0", paddingBottom: "15px", marginBottom: "15px" }}
+                >
                   <span style={{ color: "#C9A227", fontFamily: "Georgia, serif", fontSize: "24px", fontWeight: "bold", alignSelf: "flex-start", marginTop: "-3px" }}>
                     {idx + 1}
                   </span>
                   <div>
-                    <h4 style={{ margin: "0 0 6px 0", fontSize: "15px", color: "#161412", lineHeight: 1.4 }}>
+                    <h4 style={{ margin: "0 0 6px 0", fontSize: "18px", color: "#161412", lineHeight: 1.4, fontWeight: "bold" }}>
                       {article.ai_headline || article.title}
                     </h4>
-                    <span style={{ fontSize: "12px", color: "#5E574C" }}>
+                    <span style={{ fontSize: "13px", color: "#5E574C" }}>
                       1 source · {article.category || "News"}
                     </span>
                   </div>
-                </a>
+                </div>
               ))}
             </div>
           </section>

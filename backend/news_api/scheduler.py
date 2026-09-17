@@ -8,10 +8,8 @@ def scheduled_ingest():
     print(f"[{datetime.datetime.now().strftime('%H:%M:%S')}] Checking for new stories...")
     fetch_and_store_news()
 
-def scheduled_reset():
-    from .services import reset_article_database
-    print(f"[{datetime.datetime.now().strftime('%H:%M:%S')}] Hourly reset triggered.")
-    reset_article_database()
+# NOTE: scheduled_reset has been removed to prevent wiping your database every hour. 
+# Your articles will now safely persist for 30 days via the automated purge in services.py.
 
 def check_and_send_emails():
     global last_sent_date
@@ -32,7 +30,9 @@ def check_and_send_emails():
 def start():
     scheduler = BackgroundScheduler()
     # max_instances=1 guarantees the jobs will never overlap and crash
-    scheduler.add_job(scheduled_ingest, 'interval', minutes=30, max_instances=1)
-    scheduler.add_job(scheduled_reset, 'interval', hours=1)
+    scheduler.add_job(scheduled_ingest, 'interval', minutes=50, max_instances=1)
+    
+    # Hourly reset job removed here!
+    
     scheduler.add_job(check_and_send_emails, 'cron', minute='*', max_instances=1)
     scheduler.start()

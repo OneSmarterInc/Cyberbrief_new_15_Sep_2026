@@ -10,6 +10,8 @@ import CookieSettings from "./components/CookieSettings";
 import Footer from "./components/Footer";
 import HomeFeed from "./components/HomeFeed";
 import BlogPage from "./components/BlogPage";
+import BookPage from "./components/BookPage"; 
+import RssFeedPage from "./components/RssFeedPage"; // <--- ADDED IMPORT
 
 const TOKEN_KEY = "newsai_token";
 const USER_KEY = "newsai_user";
@@ -30,11 +32,13 @@ export default function App() {
   });
 
   useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" });
     if (authScreen) sessionStorage.setItem("newsai_screen", authScreen);
     else sessionStorage.removeItem("newsai_screen");
   }, [authScreen]);
 
   const [articles, setArticles] = useState([]);
+  const [totalSources, setTotalSources] = useState(0); 
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [searchQuery, setSearchQuery] = useState(""); 
   const [currentPage, setCurrentPage] = useState(1);
@@ -48,12 +52,15 @@ export default function App() {
   const [subError, setSubError] = useState("");
 
   const navigate = (path) => {
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" }); 
     window.history.pushState({}, "", path);
     window.dispatchEvent(new PopStateEvent("popstate"));
   };
 
   useEffect(() => {
     const handleRouting = (event) => {
+      window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+
       if (window.location.hash.startsWith("#/")) {
         const cleanPath = window.location.hash.replace("#", "");
         window.history.replaceState({}, "", cleanPath);
@@ -80,8 +87,12 @@ export default function App() {
         }
       } else if (path === "/login") {
         setAuthScreen("login");
-      } else if (path === "/blogs" || path === "/blog") {  // <--- FIXED TO SUPPORT BOTH /blogs & /blog
+      } else if (path === "/blogs" || path === "/blog") {
         setAuthScreen("blog");
+      } else if (path === "/books" || path === "/book") { 
+        setAuthScreen("book");
+      } else if (path === "/rss") { // <--- ADDED RSS ROUTE
+        setAuthScreen("rss");
       } else if (path === "/how") {
         setAuthScreen("about");
       } else if (path === "/privacy") {
@@ -165,6 +176,10 @@ export default function App() {
       if (!response.ok) throw new Error(`News API returned ${response.status}`);
       const result = await response.json();
       setArticles(result.articles || []);
+      
+      if (result.total_sources !== undefined) {
+        setTotalSources(result.total_sources);
+      }
     } catch {
       setError("Unable to load news. Check that the Django server is running.");
     } finally {
@@ -266,6 +281,7 @@ export default function App() {
   const currentYear = new Date().getFullYear();
 
   const handleFooterNavigation = (screen) => {
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" }); 
     if (screen === "privacy") navigate("/privacy");
     if (screen === "terms") navigate("/terms");
     if (screen === "cookies") navigate("/cookies");
@@ -280,8 +296,10 @@ export default function App() {
           user={user}
           onSignin={() => navigate("/login")}
           onHome={handleHome} 
+          onRss={() => navigate("/rss")} // <--- ADDED ONRSS PROP
           onAbout={() => navigate("/how")}
           onBlogs={() => navigate("/blogs")}
+          onBooks={() => navigate("/books")}
           onAdmin={() => navigate("/admin")} 
           onSubscribe={() => setShowSubPopup(true)} 
           onSearch={handleSearch} 
@@ -289,12 +307,15 @@ export default function App() {
           latestSummary={latestArticle?.summary || ""}
           latestPublished={latestArticle?.published || ""}
           totalStories={articles.length} 
+          totalSources={totalSources} 
         />
       )}
 
       <div style={{ flex: 1 }}>
         {authScreen === "login" ? <LoginScreen onLogin={saveSession} onBack={() => navigate("/")} />
         : authScreen === "blog" ? <BlogPage onBack={() => navigate("/")} />
+        : authScreen === "book" ? <BookPage onBack={() => navigate("/")} />
+        : authScreen === "rss" ? <RssFeedPage articles={articles} onBack={() => navigate("/")} /> // <--- RENDER RSS FEED PAGE
         : authScreen === "about" ? <AboutDesk onBack={() => navigate("/")} />
         : authScreen === "privacy" ? <PrivacyPolicy onBack={() => navigate("/")} />
         : authScreen === "terms" ? <TermsOfUse onBack={() => navigate("/")} />

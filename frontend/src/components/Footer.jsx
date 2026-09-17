@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { API_BASE_URL } from "../config";
 
-export default function Footer({ currentYear, setAuthScreen }) {
+export default function Footer({ setAuthScreen }) {
   const [socials, setSocials] = useState({
     twitter: "",
     youtube: "",
@@ -9,6 +9,9 @@ export default function Footer({ currentYear, setAuthScreen }) {
     insta: "",
     facebook: ""
   });
+
+  // Calculate the current year dynamically
+  const currentYear = new Date().getFullYear();
 
   useEffect(() => {
     fetch(`${API_BASE_URL}/social/`)

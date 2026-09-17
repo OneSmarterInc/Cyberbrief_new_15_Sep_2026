@@ -18,9 +18,9 @@ from rest_framework.authtoken.models import Token
 
 from django.db import models
 from django.utils import timezone
-from django.utils.dateparse import parse_datetime  # <--- IMPORTED TO PARSE SCHEDULED DATES
+from django.utils.dateparse import parse_datetime
 
-from .models import Article, SocialMediaConfig
+from .models import Article, SocialMediaConfig, RSSFeed
 from .services import get_stored_news
 
 FRONTEND_URL = "http://localhost:5173" 
@@ -51,8 +51,12 @@ def news(request):
             "image_url": IMAGE_URL
         })
 
+    # Dynamically count exactly how many active RSS feeds exist in the database
+    total_sources = RSSFeed.objects.filter(is_active=True).count()
+
     return Response({
         "count": len(data),
+        "total_sources": total_sources,
         "articles": data
     })
 
@@ -281,7 +285,6 @@ def delete_subscriber(request, sub_id):
 @authentication_classes([TokenAuthentication])
 @permission_classes([IsAdminUser])
 def manage_rss_feeds(request):
-    from .models import RSSFeed
     if request.method == "POST":
         name = request.data.get("name", "").strip()
         url = request.data.get("url", "").strip()
@@ -310,7 +313,6 @@ def manage_rss_feeds(request):
 @authentication_classes([TokenAuthentication])
 @permission_classes([IsAdminUser])
 def modify_rss_feed(request, feed_id):
-    from .models import RSSFeed
     try:
         feed = RSSFeed.objects.get(id=feed_id)
         if request.method == "DELETE":
@@ -566,7 +568,6 @@ def admin_social_links(request):
     })
 
 # --- BLOG ENDPOINTS WITH SCHEDULED FILTERING & BASE64 STORAGE ---
-
 @api_view(["GET"])
 @permission_classes([AllowAny])
 def get_blogs(request):
@@ -698,4 +699,96 @@ def admin_modify_blog(request, blog_id):
                 "scheduled_for": blog.scheduled_for.strftime("%Y-%m-%d %H:%M") if blog.scheduled_for else "",
                 "created_at": blog.created_at.strftime("%Y-%m-%d %H:%M")
             }
+        })
+
+# --- BOOK ENDPOINTS ---
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def get_books(request):
+    from .models import Book
+    books = Book.objects.all().order_by("-id")
+    data = [{
+        "id": b.id,
+        "title": b.title,
+        "description": b.description,
+        "url": b.url,
+        "image_url": b.image_data or "",
+    } for b in books]
+    return Response({"books": data})
+
+@api_view(["GET", "POST"])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAdminUser])
+def admin_manage_books(request):
+    from .models import Book
+    
+    if request.method == "POST":
+        title = request.data.get("title", "").strip()
+        description = request.data.get("description", "").strip()
+        url = request.data.get("url", "").strip()
+        image_file = request.FILES.get("image")
+
+        if not title or not url:
+            return Response({"error": "Title and URL are required."}, status=400)
+
+        image_data_str = ""
+        if image_file:
+            encoded_string = base64.b64encode(image_file.read()).decode('utf-8')
+            content_type = image_file.content_type or "image/jpeg"
+            image_data_str = f"data:{content_type};base64,{encoded_string}"
+
+        book = Book.objects.create(
+            title=title,
+            description=description,
+            url=url,
+            image_data=image_data_str
+        )
+        return Response({
+            "status": "success",
+            "book": {
+                "id": book.id, "title": book.title, "description": book.description,
+                "url": book.url, "image_url": book.image_data
+            }
+        })
+    
+    books = Book.objects.all().order_by("-id")
+    data = [{"id": b.id, "title": b.title, "description": b.description, "url": b.url, "image_url": b.image_data} for b in books]
+    return Response({"books": data})
+
+@api_view(["PUT", "DELETE"])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAdminUser])
+def admin_modify_book(request, book_id):
+    from .models import Book
+    try:
+        book = Book.objects.get(id=book_id)
+    except Book.DoesNotExist:
+        return Response({"error": "Book not found."}, status=404)
+    
+    if request.method == "DELETE":
+        book.delete()
+        return Response({"status": "success", "message": "Book deleted successfully."})
+    
+    elif request.method == "PUT":
+        title = request.data.get("title", "").strip()
+        description = request.data.get("description", "").strip()
+        url = request.data.get("url", "").strip()
+        image_file = request.FILES.get("image")
+
+        if not title or not url:
+            return Response({"error": "Title and URL are required."}, status=400)
+        
+        book.title = title
+        book.description = description
+        book.url = url
+        
+        if image_file:
+            encoded_string = base64.b64encode(image_file.read()).decode('utf-8')
+            content_type = image_file.content_type or "image/jpeg"
+            book.image_data = f"data:{content_type};base64,{encoded_string}"
+        
+        book.save()
+        return Response({
+            "status": "success",
+            "book": {"id": book.id, "title": book.title, "description": book.description, "url": book.url, "image_url": book.image_data}
         })

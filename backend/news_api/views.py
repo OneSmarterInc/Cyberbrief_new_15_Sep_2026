@@ -5,16 +5,25 @@ import asyncio
 import qrcode
 import pyotp
 import edge_tts
+import logging
+import uuid
 
+from django.conf import settings
+from django.shortcuts import render
 from django.http import HttpResponse
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
+from django.core import signing
+from django.core.cache import cache
+from django.core.exceptions import ValidationError
+from django.contrib.auth.password_validation import validate_password
 
-from rest_framework.decorators import api_view, permission_classes, authentication_classes
+from rest_framework.decorators import api_view, permission_classes, authentication_classes, throttle_classes
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.permissions import IsAdminUser, AllowAny
 from rest_framework.response import Response
 from rest_framework.authtoken.models import Token
+from rest_framework.throttling import AnonRateThrottle
 
 from django.db import models
 from django.utils import timezone
@@ -23,10 +32,26 @@ from django.utils.dateparse import parse_datetime
 from .models import Article, SocialMediaConfig, RSSFeed
 from .services import get_stored_news
 
+logger = logging.getLogger(__name__)
+
 FRONTEND_URL = "http://localhost:5173" 
 BACKEND_URL = "http://localhost:8000"
 
 IMAGE_URL = "https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1200&q=80"
+
+# --- SECURITY: STRICT THROTTLE ---
+class SensitiveActionThrottle(AnonRateThrottle):
+    rate = '5/min'
+
+# --- SECURITY: HTTPONLY COOKIE AUTHENTICATION ---
+class CookieTokenAuthentication(TokenAuthentication):
+    """Custom authentication class that securely extracts the DRF token from an HttpOnly cookie."""
+    def authenticate(self, request):
+        token = request.COOKIES.get('auth_token')
+        if not token:
+            return super().authenticate(request)
+        return self.authenticate_credentials(token)
+
 
 @api_view(["GET"])
 def health(request):
@@ -51,7 +76,6 @@ def news(request):
             "image_url": IMAGE_URL
         })
 
-    # Dynamically count exactly how many active RSS feeds exist in the database
     total_sources = RSSFeed.objects.filter(is_active=True).count()
 
     return Response({
@@ -61,6 +85,7 @@ def news(request):
     })
 
 @api_view(["POST"])
+@throttle_classes([SensitiveActionThrottle])
 def register(request):
     username = request.data.get("username", "").strip()
     email = request.data.get("email", "").strip()
@@ -69,8 +94,10 @@ def register(request):
     if not username or not email or not password:
         return Response({"error": "Username, email and password are required."}, status=400)
 
-    if len(password) < 6:
-        return Response({"error": "Password must be at least 6 characters."}, status=400)
+    try:
+        validate_password(password)
+    except ValidationError as exc:
+        return Response({"error": " ".join(exc.messages)}, status=400)
 
     if User.objects.filter(username=username).exists():
         return Response({"error": "Username already exists."}, status=400)
@@ -81,13 +108,19 @@ def register(request):
     user = User.objects.create_user(username=username, email=email, password=password)
     token, created = Token.objects.get_or_create(user=user)
 
-    return Response({
+    response = Response({
         "message": "Registration successful.",
-        "token": token.key,
         "user": {"id": user.id, "username": user.username, "email": user.email}
     }, status=201)
+    
+    response.set_cookie(
+        'auth_token', token.key, httponly=True, 
+        secure=not settings.DEBUG, samesite='Lax', max_age=43200
+    )
+    return response
 
 @api_view(["POST"])
+@throttle_classes([SensitiveActionThrottle])
 def login(request):
     username = request.data.get("username", "").strip()
     password = request.data.get("password", "")
@@ -106,21 +139,33 @@ def login(request):
     from .models import Admin2FA
     two_fa, created = Admin2FA.objects.get_or_create(user=user)
 
+    # Generate a random, single-use challenge ID that expires in 5 minutes (300 seconds)
+    challenge_id = str(uuid.uuid4())
+    cache.set(f"mfa_{challenge_id}", user.id, timeout=300)
+
     if not two_fa.is_enabled:
-        return Response({"status": "setup_required", "user_id": user.id})
+        return Response({"status": "setup_required", "challenge_id": challenge_id})
     else:
-        return Response({"status": "mfa_required", "user_id": user.id})
+        return Response({"status": "mfa_required", "challenge_id": challenge_id})
 
 @api_view(["POST"])
+@throttle_classes([SensitiveActionThrottle])
 def setup_2fa(request):
-    user_id = request.data.get("user_id")
+    challenge_id = request.data.get("challenge_id")
+    if not challenge_id:
+        return Response({"error": "Challenge ID missing."}, status=400)
+        
+    user_id = cache.get(f"mfa_{challenge_id}")
     if not user_id:
-        return Response({"error": "User ID missing."}, status=400)
+        return Response({"error": "Invalid or expired challenge."}, status=401)
         
     try:
         user = User.objects.get(id=user_id)
         from .models import Admin2FA
         two_fa, _ = Admin2FA.objects.get_or_create(user=user)
+        
+        if two_fa.is_enabled:
+            return Response({"error": "2FA is already configured. Please use a recovery procedure to reset."}, status=403)
         
         secret = pyotp.random_base32()
         two_fa.totp_secret = secret
@@ -140,13 +185,22 @@ def setup_2fa(request):
             "secret": secret,
             "qr_image": f"data:image/png;base64,{qr_base64}"
         })
-    except Exception as e:
-        return Response({"error": str(e)}, status=400)
+    except Exception:
+        logger.exception("Operation failed")
+        return Response({"error": "Unable to process request."}, status=500)
 
 @api_view(["POST"])
+@throttle_classes([SensitiveActionThrottle])
 def verify_2fa(request):
-    user_id = request.data.get("user_id")
+    challenge_id = request.data.get("challenge_id")
     code = request.data.get("code", "").strip()
+    
+    if not challenge_id:
+        return Response({"error": "Challenge ID missing."}, status=400)
+        
+    user_id = cache.get(f"mfa_{challenge_id}")
+    if not user_id:
+        return Response({"error": "Invalid or expired challenge."}, status=401)
     
     try:
         user = User.objects.get(id=user_id)
@@ -158,19 +212,47 @@ def verify_2fa(request):
             two_fa.is_enabled = True
             two_fa.save()
             
-            token, _ = Token.objects.get_or_create(user=user)
-            return Response({
+            # Consume the challenge so it cannot be used again
+            cache.delete(f"mfa_{challenge_id}")
+            
+            Token.objects.filter(user=user).delete()
+            token = Token.objects.create(user=user)
+            
+            response = Response({
                 "message": "Login successful.",
-                "token": token.key,
                 "user": {"id": user.id, "username": user.username, "email": user.email, "is_admin": True}
             })
+            
+            response.set_cookie(
+                'auth_token', 
+                token.key, 
+                httponly=True, 
+                secure=not settings.DEBUG, 
+                samesite='Lax', 
+                max_age=43200
+            )
+            return response
         else:
             return Response({"error": "Invalid 2FA code."}, status=401)
-    except Exception as e:
-        return Response({"error": str(e)}, status=400)
+    except Exception:
+        logger.exception("Operation failed")
+        return Response({"error": "Unable to process request."}, status=500)
 
 @api_view(["POST"])
-@authentication_classes([TokenAuthentication])
+@authentication_classes([CookieTokenAuthentication])
+@permission_classes([IsAdminUser])
+def logout(request):
+    try:
+        request.user.auth_token.delete()
+    except Exception:
+        pass
+    
+    response = Response({"status": "success", "message": "Successfully logged out."})
+    response.delete_cookie('auth_token')
+    return response
+
+@api_view(["POST"])
+@authentication_classes([CookieTokenAuthentication])
 @permission_classes([IsAdminUser])
 def toggle_article(request, article_id):
     try:
@@ -178,8 +260,9 @@ def toggle_article(request, article_id):
         article.is_active = not article.is_active
         article.save()
         return Response({"status": "success", "is_active": article.is_active})
-    except Exception as e:
-        return Response({"error": str(e)}, status=400)
+    except Exception:
+        logger.exception("Operation failed")
+        return Response({"error": "Unable to process request."}, status=500)
 
 @api_view(["POST"])
 def submit_query(request, article_id):
@@ -193,11 +276,12 @@ def submit_query(request, article_id):
             
         ArticleQuery.objects.create(article=article, query_text=text)
         return Response({"status": "success", "message": "Query submitted."})
-    except Exception as e:
-        return Response({"error": str(e)}, status=400)
+    except Exception:
+        logger.exception("Operation failed")
+        return Response({"error": "Unable to process request."}, status=500)
 
 @api_view(["GET"])
-@authentication_classes([TokenAuthentication])
+@authentication_classes([CookieTokenAuthentication])
 @permission_classes([IsAdminUser])
 def get_queries(request):
     from .models import ArticleQuery
@@ -216,7 +300,7 @@ def get_queries(request):
     return Response({"queries": data})
 
 @api_view(["POST"])
-@authentication_classes([TokenAuthentication])
+@authentication_classes([CookieTokenAuthentication])
 @permission_classes([IsAdminUser])
 def toggle_query_status(request, query_id):
     try:
@@ -225,11 +309,12 @@ def toggle_query_status(request, query_id):
         query.is_resolved = not query.is_resolved
         query.save()
         return Response({"status": "success"})
-    except Exception as e:
-        return Response({"error": str(e)}, status=400)
+    except Exception:
+        logger.exception("Operation failed")
+        return Response({"error": "Unable to process request."}, status=500)
 
 @api_view(["GET", "POST"])
-@authentication_classes([TokenAuthentication])
+@authentication_classes([CookieTokenAuthentication])
 @permission_classes([IsAdminUser])
 def manage_subscribers(request):
     from .models import Subscriber
@@ -257,7 +342,7 @@ def manage_subscribers(request):
     return Response({"subscribers": data})
 
 @api_view(["POST"])
-@authentication_classes([TokenAuthentication])
+@authentication_classes([CookieTokenAuthentication])
 @permission_classes([IsAdminUser])
 def toggle_subscriber(request, sub_id):
     try:
@@ -266,11 +351,12 @@ def toggle_subscriber(request, sub_id):
         sub.is_active = not sub.is_active
         sub.save()
         return Response({"status": "success", "is_active": sub.is_active})
-    except Exception as e:
-        return Response({"error": str(e)}, status=400)
+    except Exception:
+        logger.exception("Operation failed")
+        return Response({"error": "Unable to process request."}, status=500)
 
 @api_view(["DELETE"])
-@authentication_classes([TokenAuthentication])
+@authentication_classes([CookieTokenAuthentication])
 @permission_classes([IsAdminUser])
 def delete_subscriber(request, sub_id):
     try:
@@ -278,11 +364,12 @@ def delete_subscriber(request, sub_id):
         sub = Subscriber.objects.get(id=sub_id)
         sub.delete()
         return Response({"status": "success", "message": "Subscriber permanently deleted."})
-    except Exception as e:
-        return Response({"error": str(e)}, status=400)
+    except Exception:
+        logger.exception("Operation failed")
+        return Response({"error": "Unable to process request."}, status=500)
 
 @api_view(["GET", "POST"])
-@authentication_classes([TokenAuthentication])
+@authentication_classes([CookieTokenAuthentication])
 @permission_classes([IsAdminUser])
 def manage_rss_feeds(request):
     if request.method == "POST":
@@ -310,7 +397,7 @@ def manage_rss_feeds(request):
     return Response({"feeds": data})
 
 @api_view(["POST", "DELETE"])
-@authentication_classes([TokenAuthentication])
+@authentication_classes([CookieTokenAuthentication])
 @permission_classes([IsAdminUser])
 def modify_rss_feed(request, feed_id):
     try:
@@ -327,23 +414,35 @@ def modify_rss_feed(request, feed_id):
 
 @api_view(["GET"])
 def unsubscribe_email(request):
-    email = request.GET.get("email")
-    if email:
-        from .models import Subscriber
-        Subscriber.objects.filter(email=email).update(is_active=False)
-        return HttpResponse(
-            f"""
-            <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 50px auto; text-align: center; border: 2px solid #161412; padding: 40px; background-color: #F3EEE3;">
-                <h1 style="color: #161412; font-family: Georgia, serif;">Unsubscribed</h1>
-                <p style="color: #5E574C;"><strong>{email}</strong> has been successfully removed.</p>
-                <p style="color: #5E574C; font-size: 14px;">You will no longer receive daily briefings from The Aggregate.</p>
-            </div>
-            """
-        )
-    return HttpResponse("Invalid request.", status=400)
+    token = request.GET.get("token")
 
-def generate_email_html(articles, recipient_email):
-    unsubscribe_link = f"{BACKEND_URL}/api/unsubscribe/?email={recipient_email}"
+    if not token:
+        return HttpResponse("Invalid request.", status=400)
+
+    try:
+        data = signing.loads(token)
+        sub_id = data.get("subscriber_id")
+    except signing.BadSignature:
+        return HttpResponse("Invalid or expired unsubscribe link.", status=400)
+
+    from .models import Subscriber
+    sub = Subscriber.objects.filter(id=sub_id).first()
+    
+    if not sub:
+        return HttpResponse("Subscriber not found.", status=404)
+
+    sub.is_active = False
+    sub.save()
+
+    return render(
+        request,
+        "unsubscribe_success.html",
+        {"email": sub.email},
+    )
+
+def generate_email_html(articles, subscriber):
+    token = signing.dumps({"subscriber_id": subscriber.id})
+    unsubscribe_link = f"{BACKEND_URL}/api/unsubscribe/?token={token}"
     current_date = datetime.datetime.now().strftime("%Y-%m-%d")
     
     PUBLIC_IMAGES = [
@@ -412,7 +511,7 @@ def generate_email_html(articles, recipient_email):
     return html
 
 @api_view(["GET", "POST"])
-@authentication_classes([TokenAuthentication])
+@authentication_classes([CookieTokenAuthentication])
 @permission_classes([IsAdminUser])
 def manage_smtp(request):
     from .models import SMTPConfig
@@ -434,7 +533,7 @@ def manage_smtp(request):
     return Response({})
 
 @api_view(["POST"])
-@authentication_classes([TokenAuthentication])
+@authentication_classes([CookieTokenAuthentication])
 @permission_classes([IsAdminUser])
 def send_test_email(request):
     try:
@@ -447,7 +546,9 @@ def send_test_email(request):
         msg = EmailMultiAlternatives(subject='Test Email', body='Working!', from_email=f"{config.name} <{config.email}>", to=[recipient], connection=backend)
         msg.send()
         return Response({"status": "success"})
-    except Exception as e: return Response({"error": str(e)}, status=400)
+    except Exception:
+        logger.exception("Operation failed")
+        return Response({"error": "Unable to process request."}, status=500)
 
 @api_view(["POST"])
 def subscribe_newsletter(request):
@@ -468,8 +569,9 @@ def subscribe_newsletter(request):
         
         Subscriber.objects.create(email=recipient, is_active=True)
         return Response({"status": "success", "message": "Subscription added!"})
-    except Exception as e:
-        return Response({"error": f"Database Error: {str(e)}"}, status=400)
+    except Exception:
+        logger.exception("Operation failed")
+        return Response({"error": "Unable to process request."}, status=500)
 
 def process_mass_blast():
     try:
@@ -488,7 +590,7 @@ def process_mass_blast():
         sent_count = 0
         for sub in subscribers:
             try:
-                user_html = generate_email_html(latest_articles, sub.email)
+                user_html = generate_email_html(latest_articles, sub)
                 msg = EmailMultiAlternatives(
                     subject='Cyberbriefs Newsletter',
                     body='Please view this email in an HTML-compatible client.',
@@ -502,14 +604,15 @@ def process_mass_blast():
                 sub.emails_received += 1
                 sub.save()
                 sent_count += 1
-            except Exception as e:
-                print(f"Failed to send to {sub.email}: {e}")
+            except Exception:
+                logger.exception(f"Failed to send to {sub.email}")
         return True, f"Sent {sent_count} emails!"
-    except Exception as e:
-        return False, str(e)
+    except Exception:
+        logger.exception("Operation failed")
+        return False, "Unable to process request."
 
 @api_view(["POST"])
-@authentication_classes([TokenAuthentication])
+@authentication_classes([CookieTokenAuthentication])
 @permission_classes([IsAdminUser])
 def send_daily_blast(request):
     success, message = process_mass_blast()
@@ -547,7 +650,7 @@ def get_social_links(request):
     })
 
 @api_view(["GET", "POST"])
-@authentication_classes([TokenAuthentication])
+@authentication_classes([CookieTokenAuthentication])
 @permission_classes([IsAdminUser])
 def admin_social_links(request):
     config, _ = SocialMediaConfig.objects.get_or_create(id=1)
@@ -574,7 +677,6 @@ def get_blogs(request):
     from .models import BlogPost
     now = timezone.now()
     
-    # Filter active blogs: posted 'now' OR scheduled for a time that has already passed
     blogs = BlogPost.objects.filter(is_active=True).filter(
         models.Q(publish_option="now") | models.Q(publish_option="schedule", scheduled_for__lte=now)
     ).order_by("-id")
@@ -593,7 +695,7 @@ def get_blogs(request):
     return Response({"blogs": data})
 
 @api_view(["GET", "POST"])
-@authentication_classes([TokenAuthentication])
+@authentication_classes([CookieTokenAuthentication])
 @permission_classes([IsAdminUser])
 def admin_manage_blogs(request):
     from .models import BlogPost
@@ -651,7 +753,7 @@ def admin_manage_blogs(request):
     return Response({"blogs": data})
 
 @api_view(["PUT", "DELETE"])
-@authentication_classes([TokenAuthentication])
+@authentication_classes([CookieTokenAuthentication])
 @permission_classes([IsAdminUser])
 def admin_modify_blog(request, blog_id):
     from .models import BlogPost
@@ -717,7 +819,7 @@ def get_books(request):
     return Response({"books": data})
 
 @api_view(["GET", "POST"])
-@authentication_classes([TokenAuthentication])
+@authentication_classes([CookieTokenAuthentication])
 @permission_classes([IsAdminUser])
 def admin_manage_books(request):
     from .models import Book
@@ -756,7 +858,7 @@ def admin_manage_books(request):
     return Response({"books": data})
 
 @api_view(["PUT", "DELETE"])
-@authentication_classes([TokenAuthentication])
+@authentication_classes([CookieTokenAuthentication])
 @permission_classes([IsAdminUser])
 def admin_modify_book(request, book_id):
     from .models import Book

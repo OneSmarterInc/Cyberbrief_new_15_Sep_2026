@@ -7,8 +7,12 @@ urlpatterns = [
     path('register/', views.register, name='register'),
     path('login/', views.login, name='login'),
     
-    path('login/setup-2fa/', views.setup_2fa, name='setup_2fa'),
-    path('login/verify-2fa/', views.verify_2fa, name='verify_2fa'),
+    # Updated to match the React frontend fetch URLs
+    path('setup-2fa/', views.setup_2fa, name='setup_2fa'),
+    path('verify-2fa/', views.verify_2fa, name='verify_2fa'),
+    
+    # Added the missing logout endpoint
+    path('logout/', views.logout, name='logout'),
     
     path('news/<int:article_id>/toggle/', views.toggle_article, name='toggle_article'),
     path('news/<int:article_id>/query/', views.submit_query, name='submit_query'),

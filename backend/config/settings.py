@@ -13,11 +13,61 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'django-development-key')
 DEBUG = os.environ.get('DEBUG', 'True') == 'True'
 ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '*').split(',')
 
+# --- PRODUCTION HTTPS & SECURITY SETTINGS ---
+if not DEBUG:
+    # Defaults to True in production, but allows override for local testing with DEBUG=False
+    # To test locally with DEBUG=False, add SECURE_SSL_REDIRECT=False to your .env file
+    SECURE_SSL_REDIRECT = os.environ.get('SECURE_SSL_REDIRECT', 'True') == 'True'
+    
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+
+    SECURE_HSTS_SECONDS = 31536000
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+
+    X_FRAME_OPTIONS = "DENY"
+
+    SECURE_REFERRER_POLICY = "strict-origin-when-cross-origin"
+    
+    # Required if deploying behind an Nginx/trusted reverse proxy
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+# --- REST FRAMEWORK CONFIGURATION ---
 REST_FRAMEWORK = {
     "DEFAULT_RENDERER_CLASSES": [
         "rest_framework.renderers.JSONRenderer",
     ],
+    "DEFAULT_THROTTLE_CLASSES": [
+        "rest_framework.throttling.AnonRateThrottle",
+        "rest_framework.throttling.UserRateThrottle",
+    ],
+    "DEFAULT_THROTTLE_RATES": {
+        "anon": "60/min",
+        "user": "300/min",
+    },
 }
+
+# --- PASSWORD VALIDATION ---
+AUTH_PASSWORD_VALIDATORS = [
+    {
+        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+        'OPTIONS': {
+            'min_length': 8,
+        }
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+    },
+]
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -33,9 +83,11 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    # CORS must be at the very top to intercept requests before security blocks them
+    "corsheaders.middleware.CorsMiddleware",
+    
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
-    "corsheaders.middleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
@@ -89,13 +141,29 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+# --- URL ROUTING ---
+# Appends a slash to URLs (e.g. /api/news -> /api/news/) 
+APPEND_SLASH = True
+
 # --- CORS SETTINGS ---
-if DEBUG:
-    CORS_ALLOW_ALL_ORIGINS = True 
-else:
-    CORS_ALLOW_ALL_ORIGINS = False
-    CORS_ALLOWED_ORIGINS = os.environ.get('CORS_ALLOWED_ORIGINS', '').split(',')
-    CSRF_TRUSTED_ORIGINS = os.environ.get('CSRF_TRUSTED_ORIGINS', '').split(',')
+CORS_ALLOW_ALL_ORIGINS = False
+CORS_ALLOW_CREDENTIALS = True
+
+# Explicitly whitelist the exact local development URLs
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+]
+
+# Safely append production origins from your .env file, rejecting wildcards
+env_cors = os.environ.get('CORS_ALLOWED_ORIGINS', '')
+if env_cors and env_cors != '*':
+    CORS_ALLOWED_ORIGINS.extend([
+        origin.strip() for origin in env_cors.split(',') if origin.strip() and origin.strip() != '*'
+    ])
+
+# CSRF needs the exact same whitelist
+CSRF_TRUSTED_ORIGINS = CORS_ALLOWED_ORIGINS.copy()
 
 CORS_ALLOW_HEADERS = [
     "accept",

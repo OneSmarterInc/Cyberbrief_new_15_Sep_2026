@@ -12,3 +12,9 @@ db.sqlite3
 
 # Ignore local AI model weights (too large for GitHub)
 ai_model/
+
+# Database dumps
+datadump.json
+*.json
+*.sql
+*.sqlite3

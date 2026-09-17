@@ -56,10 +56,10 @@ export default function AdminDashboard({ user, articles, token, onRefresh, onBac
     };
 
     if (view === "queries") {
-      fetch(`${API_BASE_URL}/admin/queries/`, { headers: { "Authorization": `Token ${authToken}` }, credentials: "include" })
+      fetch(`${API_BASE_URL}/administration/queries/`, { headers: { "Authorization": `Token ${authToken}` }, credentials: "include" })
       .then(checkAuth).then(data => setQueries(data.queries || [])).catch(console.error);
     } else if (view === "smtp") {
-      fetch(`${API_BASE_URL}/admin/smtp/`, { headers: { "Authorization": `Token ${authToken}` }, credentials: "include" })
+      fetch(`${API_BASE_URL}/administration/smtp/`, { headers: { "Authorization": `Token ${authToken}` }, credentials: "include" })
       .then(checkAuth).then(data => {
         if (data.host) setSmtpForm({ 
           name: data.name || "", email: data.email || "", reply_to: data.reply_to || "", 
@@ -70,13 +70,13 @@ export default function AdminDashboard({ user, articles, token, onRefresh, onBac
         });
       }).catch(console.error);
     } else if (view === "subscribers") {
-      fetch(`${API_BASE_URL}/admin/subscribers/`, { headers: { "Authorization": `Token ${authToken}` }, credentials: "include" })
+      fetch(`${API_BASE_URL}/administration/subscribers/`, { headers: { "Authorization": `Token ${authToken}` }, credentials: "include" })
       .then(checkAuth).then(data => setSubscribers(data.subscribers || [])).catch(console.error);
     } else if (view === "feeds") {
-      fetch(`${API_BASE_URL}/admin/feeds/`, { headers: { "Authorization": `Token ${authToken}` }, credentials: "include" })
+      fetch(`${API_BASE_URL}/administration/feeds/`, { headers: { "Authorization": `Token ${authToken}` }, credentials: "include" })
       .then(checkAuth).then(data => setFeeds(data.feeds || [])).catch(console.error);
     } else if (view === "social") {
-      fetch(`${API_BASE_URL}/admin/social/`, { headers: { "Authorization": `Token ${authToken}` }, credentials: "include" })
+      fetch(`${API_BASE_URL}/administration/social/`, { headers: { "Authorization": `Token ${authToken}` }, credentials: "include" })
       .then(checkAuth).then(data => {
         if (data) {
           setSocialForm({
@@ -92,7 +92,7 @@ export default function AdminDashboard({ user, articles, token, onRefresh, onBac
     e.preventDefault();
     setSocialSaving(true);
     try {
-      const res = await fetch(`${API_BASE_URL}/admin/social/`, { 
+      const res = await fetch(`${API_BASE_URL}/administration/social/`, { 
         method: "POST", 
         headers: { "Authorization": `Token ${authToken}`, "Content-Type": "application/json" }, 
         credentials: "include",
@@ -120,7 +120,7 @@ export default function AdminDashboard({ user, articles, token, onRefresh, onBac
 
   const resolveQuery = async (queryId) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/admin/queries/${queryId}/toggle/`, { method: "POST", headers: { "Authorization": `Token ${authToken}`, "Content-Type": "application/json" }, credentials: "include" });
+      const response = await fetch(`${API_BASE_URL}/administration/queries/${queryId}/toggle/`, { method: "POST", headers: { "Authorization": `Token ${authToken}`, "Content-Type": "application/json" }, credentials: "include" });
       if (response.ok) setQueries(queries.map(q => q.id === queryId ? { ...q, is_resolved: !q.is_resolved } : q));
     } catch (err) { console.error(err); }
   };
@@ -128,7 +128,7 @@ export default function AdminDashboard({ user, articles, token, onRefresh, onBac
   const disableArticleAndResolve = async (articleId, queryId) => {
     try {
       await fetch(`${API_BASE_URL}/news/${articleId}/toggle/`, { method: "POST", headers: { "Authorization": `Token ${authToken}`, "Content-Type": "application/json" }, credentials: "include" });
-      await fetch(`${API_BASE_URL}/admin/queries/${queryId}/toggle/`, { method: "POST", headers: { "Authorization": `Token ${authToken}`, "Content-Type": "application/json" }, credentials: "include" });
+      await fetch(`${API_BASE_URL}/administration/queries/${queryId}/toggle/`, { method: "POST", headers: { "Authorization": `Token ${authToken}`, "Content-Type": "application/json" }, credentials: "include" });
       setQueries(queries.map(q => q.id === queryId ? { ...q, is_resolved: true, article_is_active: false } : q));
       onRefresh();
     } catch (err) { console.error(err); }
@@ -139,7 +139,7 @@ export default function AdminDashboard({ user, articles, token, onRefresh, onBac
     if (!newSubEmail.trim()) return;
     setSubLoading(true);
     try {
-      const res = await fetch(`${API_BASE_URL}/admin/subscribers/`, {
+      const res = await fetch(`${API_BASE_URL}/administration/subscribers/`, {
         method: "POST",
         headers: { "Authorization": `Token ${authToken}`, "Content-Type": "application/json" },
         credentials: "include",
@@ -158,7 +158,7 @@ export default function AdminDashboard({ user, articles, token, onRefresh, onBac
 
   const handleToggleSubscriber = async (id) => {
     try {
-      const res = await fetch(`${API_BASE_URL}/admin/subscribers/${id}/toggle/`, {
+      const res = await fetch(`${API_BASE_URL}/administration/subscribers/${id}/toggle/`, {
         method: "POST", headers: { "Authorization": `Token ${authToken}` }, credentials: "include"
       });
       if (res.ok) setSubscribers(subscribers.map(s => s.id === id ? { ...s, is_active: !s.is_active } : s));
@@ -173,7 +173,7 @@ export default function AdminDashboard({ user, articles, token, onRefresh, onBac
       type: "confirm",
       onConfirm: async () => {
         try {
-          const res = await fetch(`${API_BASE_URL}/admin/subscribers/${id}/delete/`, {
+          const res = await fetch(`${API_BASE_URL}/administration/subscribers/${id}/delete/`, {
             method: "DELETE", headers: { "Authorization": `Token ${authToken}` }, credentials: "include"
           });
           if (res.ok) {
@@ -192,7 +192,7 @@ export default function AdminDashboard({ user, articles, token, onRefresh, onBac
     e.preventDefault();
     setSmtpSaving(true);
     try {
-      const res = await fetch(`${API_BASE_URL}/admin/smtp/`, { method: "POST", headers: { "Authorization": `Token ${authToken}`, "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify(smtpForm) });
+      const res = await fetch(`${API_BASE_URL}/administration/smtp/`, { method: "POST", headers: { "Authorization": `Token ${authToken}`, "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify(smtpForm) });
       if (res.ok) {
         setModal({ show: true, title: "Success", message: "Email configuration settings saved successfully!", type: "alert" });
       }
@@ -208,7 +208,7 @@ export default function AdminDashboard({ user, articles, token, onRefresh, onBac
       onConfirm: async () => {
         setBlastLoading(true);
         try {
-          const res = await fetch(`${API_BASE_URL}/admin/smtp/blast/`, { method: "POST", headers: { "Authorization": `Token ${authToken}` }, credentials: "include" });
+          const res = await fetch(`${API_BASE_URL}/administration/smtp/blast/`, { method: "POST", headers: { "Authorization": `Token ${authToken}` }, credentials: "include" });
           const data = await res.json();
           if (res.ok) { 
             setModal({ show: true, title: "Blast Sent", message: data.message, type: "alert" });
@@ -502,7 +502,7 @@ export default function AdminDashboard({ user, articles, token, onRefresh, onBac
             <h1 style={{ fontFamily: "Georgia, serif", borderBottom: "2px solid #161412", paddingBottom: "10px" }}>RSS Feed Sources</h1>
             <form onSubmit={async (e) => {
               e.preventDefault();
-              const res = await fetch(`${API_BASE_URL}/admin/feeds/`, {
+              const res = await fetch(`${API_BASE_URL}/administration/feeds/`, {
                 method: "POST",
                 headers: { "Authorization": `Token ${authToken}`, "Content-Type": "application/json" },
                 credentials: "include",
@@ -513,7 +513,7 @@ export default function AdminDashboard({ user, articles, token, onRefresh, onBac
                 setFeeds([data.feed, ...feeds]);
                 setNewFeedName("");
                 setNewFeedUrl("");
-                if (onRefresh) onRefresh(); // NEW: Triggers global update
+                if (onRefresh) onRefresh(); 
               } else {
                 setModal({ show: true, title: "Error", message: data.error, type: "alert" });
               }
@@ -552,10 +552,10 @@ export default function AdminDashboard({ user, articles, token, onRefresh, onBac
                       </td>
                       <td style={{ padding: "12px 15px", textAlign: "right" }}>
                         <button onClick={async () => {
-                          const res = await fetch(`${API_BASE_URL}/admin/feeds/${feed.id}/`, { method: "POST", headers: { "Authorization": `Token ${authToken}` }, credentials: "include" });
+                          const res = await fetch(`${API_BASE_URL}/administration/feeds/${feed.id}/`, { method: "POST", headers: { "Authorization": `Token ${authToken}` }, credentials: "include" });
                           if (res.ok) {
                             setFeeds(feeds.map(f => f.id === feed.id ? { ...f, is_active: !f.is_active } : f));
-                            if (onRefresh) onRefresh(); // NEW: Triggers global update
+                            if (onRefresh) onRefresh(); 
                           }
                         }} style={{ padding: "6px 10px", marginRight: "8px", cursor: "pointer" }}>{feed.is_active ? "Pause" : "Resume"}</button>
                         <button onClick={async () => {
@@ -565,10 +565,10 @@ export default function AdminDashboard({ user, articles, token, onRefresh, onBac
                             message: "Delete this RSS feed source?",
                             type: "confirm",
                             onConfirm: async () => {
-                              const res = await fetch(`${API_BASE_URL}/admin/feeds/${feed.id}/`, { method: "DELETE", headers: { "Authorization": `Token ${authToken}` }, credentials: "include" });
+                              const res = await fetch(`${API_BASE_URL}/administration/feeds/${feed.id}/`, { method: "DELETE", headers: { "Authorization": `Token ${authToken}` }, credentials: "include" });
                               if (res.ok) {
                                 setFeeds(feeds.filter(f => f.id !== feed.id));
-                                if (onRefresh) onRefresh(); // NEW: Triggers global update
+                                if (onRefresh) onRefresh(); 
                               }
                               setModal({ show: false });
                             }

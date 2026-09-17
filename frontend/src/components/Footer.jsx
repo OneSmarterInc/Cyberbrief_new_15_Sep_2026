@@ -8,8 +8,9 @@ export default function Footer({ setAuthScreen }) {
     email: "",
     insta: "",
     facebook: "",
-    linkedin: "" // <-- Added state
+    linkedin: ""
   });
+  const [copied, setCopied] = useState(false);
 
   const currentYear = new Date().getFullYear();
 
@@ -21,6 +22,15 @@ export default function Footer({ setAuthScreen }) {
       })
       .catch(err => console.error("Failed to load social links", err));
   }, []);
+
+  const handleEmailClick = (e, emailVal) => {
+    e.preventDefault();
+    const cleanEmail = emailVal.replace(/^mailto:/, "");
+    navigator.clipboard.writeText(cleanEmail).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    });
+  };
 
   const icons = {
     twitter: (
@@ -46,7 +56,7 @@ export default function Footer({ setAuthScreen }) {
         <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path>
       </svg>
     ),
-    linkedin: ( // <-- Added LinkedIn SVG
+    linkedin: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"></path>
         <rect x="2" y="9" width="4" height="12"></rect>
@@ -71,11 +81,20 @@ export default function Footer({ setAuthScreen }) {
     borderRadius: "50%",
     border: "1px solid #332F2C",
     backgroundColor: "#1F1C19",
-    transition: "all 0.2s ease"
+    transition: "all 0.2s ease",
+    position: "relative"
   };
 
   return (
-    <footer style={{ backgroundColor: "#161412", color: "#F3EEE3", padding: "40px 20px", marginTop: "auto", fontFamily: "Arial, sans-serif" }}>
+    <footer style={{ backgroundColor: "#161412", color: "#F3EEE3", padding: "40px 20px", marginTop: "auto", fontFamily: "Arial, sans-serif", position: "relative" }}>
+      
+      {/* Copied Notification Toast */}
+      {copied && (
+        <div style={{ position: "absolute", bottom: "90px", left: "50%", transform: "translateX(-50%)", backgroundColor: "#C9A227", color: "#161412", padding: "6px 16px", borderRadius: "4px", fontSize: "12px", fontWeight: "bold", zIndex: 1000, boxShadow: "0 4px 12px rgba(0,0,0,0.2)" }}>
+          Email copied to clipboard!
+        </div>
+      )}
+
       <div style={{ maxWidth: "1200px", margin: "0 auto", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "20px" }}>
         
         <div>
@@ -89,7 +108,7 @@ export default function Footer({ setAuthScreen }) {
               {icons.twitter}
             </a>
           )}
-          {socials.linkedin && ( // <-- Added LinkedIn render
+          {socials.linkedin && (
             <a href={socials.linkedin} target="_blank" rel="noopener noreferrer" title="LinkedIn" style={iconLinkStyle}>
               {icons.linkedin}
             </a>
@@ -110,7 +129,12 @@ export default function Footer({ setAuthScreen }) {
             </a>
           )}
           {socials.email && (
-            <a href={socials.email.startsWith("http") || socials.email.startsWith("mailto") ? socials.email : `mailto:${socials.email}`} title="Contact Email" style={iconLinkStyle}>
+            <a 
+              href="#copy-email" 
+              onClick={(e) => handleEmailClick(e, socials.email)} 
+              title="Click to copy email" 
+              style={iconLinkStyle}
+            >
               {icons.email}
             </a>
           )}

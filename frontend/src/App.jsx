@@ -196,7 +196,16 @@ export default function App() {
     }
   }, [authScreen, fetchNews]);
 
+  // --- UPDATED: Silences popup for existing email subscribers ---
   useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const isSubscriber = searchParams.get("sub") === "true";
+
+    // If they came from the email link, mark them as seen to hide the popup entirely
+    if (isSubscriber) {
+      sessionStorage.setItem("hasSeenPopup", "true");
+    }
+
     if (!authScreen && !sessionStorage.getItem("hasSeenPopup")) {
       const timer = setTimeout(() => {
         setShowSubPopup(true);

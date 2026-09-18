@@ -24,7 +24,7 @@ export default function BlogManagement({ authToken }) {
   // DEFINED FIRST so useEffect can call it safely
   const fetchBlogs = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/admin/blogs/`, {
+      const res = await fetch(`${API_BASE_URL}/administration/blogs/`, { // <-- FIXED HERE
         headers: { "Authorization": `Token ${authToken}` },
         credentials: "include"
       });
@@ -116,9 +116,10 @@ export default function BlogManagement({ authToken }) {
     }
     if (blogImage) formData.append("image", blogImage);
 
+    // <-- FIXED HERE
     const url = editingBlogId 
-      ? `${API_BASE_URL}/admin/blogs/${editingBlogId}/` 
-      : `${API_BASE_URL}/admin/blogs/`;
+      ? `${API_BASE_URL}/administration/blogs/${editingBlogId}/` 
+      : `${API_BASE_URL}/administration/blogs/`;
     
     const method = editingBlogId ? "PUT" : "POST";
 
@@ -162,7 +163,7 @@ export default function BlogManagement({ authToken }) {
       type: "confirm",
       onConfirm: async () => {
         try {
-          const res = await fetch(`${API_BASE_URL}/admin/blogs/${id}/`, {
+          const res = await fetch(`${API_BASE_URL}/administration/blogs/${id}/`, { // <-- FIXED HERE
             method: "DELETE",
             headers: { "Authorization": `Token ${authToken}` },
             credentials: "include"

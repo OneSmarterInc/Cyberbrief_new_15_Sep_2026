@@ -16,7 +16,7 @@ const getArticleImage = (article) => {
   return localImages[numericId % localImages.length];
 };
 
-// Helper to format date to Eastern Time
+// Helper to format date strictly to Eastern Standard Time (EST)
 const formatToEST = (dateString) => {
   if (!dateString) return null;
   try {
@@ -24,7 +24,7 @@ const formatToEST = (dateString) => {
     if (isNaN(date.getTime())) return dateString; // Return original if parsing fails
 
     return new Intl.DateTimeFormat("en-US", {
-      timeZone: "America/New_York",
+      timeZone: "EST", // Locked to EST specifically, skipping EDT shifts
       year: "numeric",
       month: "short",
       day: "numeric",
@@ -45,7 +45,7 @@ export default function NewsCard({ article, index, onArticleClick }) {
 
   const [modal, setModal] = useState({ show: false, title: "", message: "" });
 
-  // UPDATED: Now strictly cuts off at 50 words
+  // Strictly cuts off at 50 words
   const getTruncatedSummary = (text) => {
     if (!text) return "Summary unavailable.";
     const words = text.split(/\s+/);

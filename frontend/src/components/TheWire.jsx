@@ -31,14 +31,14 @@ export default function TheWire({ articles, selectedCategory = "All", onArticleC
       if (isNaN(date.getTime())) {
         // Fallback for non-standard RSS dates (extract just the time part if possible)
         const timeMatch = dateString.match(/\d{1,2}:\d{2}(:\d{2})?/);
-        return timeMatch ? `${timeMatch[0]} EST` : "Latest"; 
+        return timeMatch ? timeMatch[0] : "Latest"; 
       }
 
       return new Intl.DateTimeFormat("en-US", {
         timeZone: "EST", // Locked to EST specifically, skipping EDT shifts
         hour: "numeric",
-        minute: "2-digit",
-        timeZoneName: "short"
+        minute: "2-digit"
+        // timeZoneName removed here to hide "EST"
       }).format(date);
     } catch (e) {
       return "Latest";
@@ -86,8 +86,8 @@ export default function TheWire({ articles, selectedCategory = "All", onArticleC
                 className="wire-clickable"
                 style={{ gap: "15px", paddingBottom: "20px", marginBottom: "20px", borderBottom: "1px solid rgba(243, 238, 227, 0.1)" }}
               >
-                {/* Left Column: Actual Timestamp strictly in EST */}
-                <div style={{ color: "#C9C1B0", fontSize: "13px", width: "75px", flexShrink: 0, marginTop: "2px" }}>
+                {/* Left Column: Actual Timestamp strictly in EST without label */}
+                <div style={{ color: "#C9C1B0", fontSize: "13px", width: "65px", flexShrink: 0, marginTop: "2px" }}>
                   {formatTime(article.published)}
                 </div>
                 

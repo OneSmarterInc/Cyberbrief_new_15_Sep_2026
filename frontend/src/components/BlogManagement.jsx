@@ -24,9 +24,9 @@ export default function BlogManagement({ authToken }) {
   // DEFINED FIRST so useEffect can call it safely
   const fetchBlogs = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/administration/blogs/`, { // <-- FIXED HERE
+      const res = await fetch(`${API_BASE_URL}/administration/blogs/`, { // <-- FIXED ROUTE
         headers: { "Authorization": `Token ${authToken}` },
-        credentials: "include"
+        credentials: "include" // <-- ADDED CREDENTIALS
       });
       const data = await res.json();
       if (res.ok) setBlogs(data.blogs || []);
@@ -116,7 +116,7 @@ export default function BlogManagement({ authToken }) {
     }
     if (blogImage) formData.append("image", blogImage);
 
-    // <-- FIXED HERE
+    // <-- FIXED ROUTES
     const url = editingBlogId 
       ? `${API_BASE_URL}/administration/blogs/${editingBlogId}/` 
       : `${API_BASE_URL}/administration/blogs/`;
@@ -127,7 +127,7 @@ export default function BlogManagement({ authToken }) {
       const res = await fetch(url, {
         method: method,
         headers: { "Authorization": `Token ${authToken}` },
-        credentials: "include",
+        credentials: "include", // <-- ADDED CREDENTIALS
         body: formData
       });
       const data = await res.json();
@@ -163,10 +163,10 @@ export default function BlogManagement({ authToken }) {
       type: "confirm",
       onConfirm: async () => {
         try {
-          const res = await fetch(`${API_BASE_URL}/administration/blogs/${id}/`, { // <-- FIXED HERE
+          const res = await fetch(`${API_BASE_URL}/administration/blogs/${id}/`, { // <-- FIXED ROUTE
             method: "DELETE",
             headers: { "Authorization": `Token ${authToken}` },
-            credentials: "include"
+            credentials: "include" // <-- ADDED CREDENTIALS
           });
           if (res.ok) {
             setBlogs(blogs.filter(b => b.id !== id));

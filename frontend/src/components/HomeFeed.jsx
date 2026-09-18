@@ -12,9 +12,26 @@ const localImages = [
 
 const getArticleImage = (article) => {
   if (!article) return localImages[0];
-  // If article has a numeric ID, use it. Otherwise, generate a hash from its title/guid.
   const numericId = Number(article.id) || Math.abs(article.title?.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0)) || 1;
   return localImages[numericId % localImages.length];
+};
+
+// Helper to format date strictly to Eastern Standard Time (EST)
+const formatToEST = (dateString) => {
+  if (!dateString) return "Just now";
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return dateString;
+
+    return new Intl.DateTimeFormat("en-US", {
+      timeZone: "EST",
+      hour: "numeric",
+      minute: "2-digit",
+      timeZoneName: "short"
+    }).format(date);
+  } catch (e) {
+    return dateString;
+  }
 };
 
 export default function HomeFeed({ 
@@ -22,16 +39,62 @@ export default function HomeFeed({
   currentPage, totalPages, handlePageChange, articles, selectedCategory 
 }) {
   
-  // Custom Website Modal State
   const [modal, setModal] = useState({ show: false, title: "", message: "", type: "alert", onConfirm: null });
-  
-  // State: Tracks which article the user clicked on to view details
   const [selectedArticle, setSelectedArticle] = useState(null);
 
-  // Scroll to the top automatically when opening or closing an article
+  // 1. Initial Load & URL Check (Handles Refresh)
+  useEffect(() => {
+    if (articles && articles.length > 0) {
+      const params = new URLSearchParams(window.location.search);
+      const urlId = params.get("article_id");
+      
+      if (urlId) {
+        const articleFromUrl = articles.find(a => a.id.toString() === urlId);
+        if (articleFromUrl && (!selectedArticle || selectedArticle.id !== articleFromUrl.id)) {
+          setSelectedArticle(articleFromUrl);
+        }
+      } else if (selectedArticle) {
+        setSelectedArticle(null); // Clear state if URL has no ID
+      }
+    }
+  }, [articles]);
+
+  // 2. Listen to Browser Back/Forward Buttons
+  useEffect(() => {
+    const handlePopState = () => {
+      const params = new URLSearchParams(window.location.search);
+      const urlId = params.get("article_id");
+      
+      if (urlId && articles.length > 0) {
+        const articleFromUrl = articles.find(a => a.id.toString() === urlId);
+        setSelectedArticle(articleFromUrl || null);
+      } else {
+        setSelectedArticle(null);
+      }
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, [articles]);
+
+  // Scroll to top only when the selected article changes
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [selectedArticle]);
+
+  // 3. Custom Nav Handlers
+  const handleOpenArticle = (article) => {
+    setSelectedArticle(article);
+    window.history.pushState({}, "", `?article_id=${article.id}`);
+  };
+
+  const handleCloseArticle = () => {
+    setSelectedArticle(null);
+    // Clear query string entirely
+    const url = new URL(window.location);
+    url.searchParams.delete('article_id');
+    window.history.pushState({}, "", url.pathname + url.search);
+  };
 
   const mainArticles = currentArticles.slice(0, 3);
   const morningArticles = currentArticles.slice(3, 6);
@@ -39,10 +102,8 @@ export default function HomeFeed({
 
   // --- PROFESSIONAL DETAILED ARTICLE VIEW ---
   if (selectedArticle) {
-    // STRICTLY USE LOCAL IMAGE: Matches exactly what was shown in the feed
     const displayImage = localImages[selectedArticle.id % localImages.length];
     
-    // Generate a consistent color for the tiny source avatar
     let hash = 0;
     const sourceName = selectedArticle.source || "News";
     for (let i = 0; i < sourceName.length; i++) hash = sourceName.charCodeAt(i) + ((hash << 5) - hash);
@@ -51,7 +112,6 @@ export default function HomeFeed({
     return (
       <div style={{ maxWidth: "950px", margin: "0 auto", padding: "40px 20px", width: "100%" }}>
         
-        {/* MATCHED WEBSITE THEME: Changed background to #F3EEE3 and border to #161412 */}
         <div style={{ backgroundColor: "#F3EEE3", borderRadius: "8px", border: "1px solid #161412", overflow: "hidden", boxShadow: "0 8px 30px rgba(0,0,0,0.08)" }}>
           
           {/* Hero Image with Gradient Overlay */}
@@ -62,7 +122,6 @@ export default function HomeFeed({
               style={{ width: "100%", height: "100%", objectFit: "cover" }} 
             />
             
-            {/* Dark Gradient Overlay for Text Readability */}
             <div style={{ 
               position: "absolute", 
               bottom: 0, left: 0, right: 0, 
@@ -72,12 +131,10 @@ export default function HomeFeed({
               flexDirection: "column",
               justifyContent: "flex-end"
             }}>
-              {/* Editorial Serif Header matching the rest of the site */}
               <h1 style={{ fontFamily: "Georgia, serif", fontSize: "36px", color: "#F3EEE3", margin: "0 0 20px 0", lineHeight: "1.25", fontWeight: "bold" }}>
                 {selectedArticle.ai_headline || selectedArticle.title}
               </h1>
               
-              {/* Author / Source Meta Bar */}
               <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                 <div style={{ 
                   width: "36px", height: "36px", borderRadius: "50%", backgroundColor: avatarColor, 
@@ -91,21 +148,19 @@ export default function HomeFeed({
                     {sourceName}
                   </div>
                   <div style={{ fontSize: "13px", color: "#C9C1B0", marginTop: "2px" }}>
-                    {selectedArticle.published || "Recently Added"}
+                    {formatToEST(selectedArticle.published) || "Recently Added"}
                   </div>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Article Content Section */}
           <div style={{ padding: "40px" }}>
             
             <p style={{ fontSize: "18px", color: "#161412", lineHeight: "1.8", margin: "0 0 50px 0", fontFamily: "Arial, sans-serif" }}>
               {selectedArticle.summary || "No summary is available for this article at this time. Click the original article link below to read the full coverage."}
             </p>
             
-            {/* Professional Footer Actions */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid #C9C1B0", paddingTop: "25px" }}>
               
               <a 
@@ -125,7 +180,7 @@ export default function HomeFeed({
               </a>
 
               <button 
-                onClick={() => setSelectedArticle(null)}
+                onClick={handleCloseArticle}
                 style={{ 
                   backgroundColor: "#d32f2f", color: "#ffffff", border: "none", 
                   padding: "10px 20px", fontWeight: "bold", cursor: "pointer", 
@@ -220,7 +275,7 @@ export default function HomeFeed({
                     key={article.id} 
                     article={article} 
                     index={index} 
-                    onArticleClick={setSelectedArticle} 
+                    onArticleClick={handleOpenArticle} 
                   />
                 ))}
 
@@ -238,7 +293,7 @@ export default function HomeFeed({
 
                         return (
                           <div 
-                            onClick={() => setSelectedArticle(article)} 
+                            onClick={() => handleOpenArticle(article)} 
                             key={article.id} 
                             className="clickable-card" 
                             style={{ flexDirection: "column" }}
@@ -265,7 +320,7 @@ export default function HomeFeed({
                                 sources
                               </span>
                               <span style={{ fontSize: "12px", color: "#5E574C" }}>
-                                Updated {new Date(article.published || Date.now()).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+                                Updated {formatToEST(article.published)}
                               </span>
                             </div>
                           </div>
@@ -306,7 +361,7 @@ export default function HomeFeed({
         <TheWire 
           articles={articles} 
           selectedCategory={selectedCategory} 
-          onArticleClick={setSelectedArticle} 
+          onArticleClick={handleOpenArticle} 
         />
 
         {briefArticles.length > 0 && (
@@ -317,7 +372,7 @@ export default function HomeFeed({
             <div style={{ display: "flex", flexDirection: "column" }}>
               {briefArticles.map((article, idx) => (
                 <div 
-                  onClick={() => setSelectedArticle(article)} 
+                  onClick={() => handleOpenArticle(article)} 
                   key={article.id} 
                   className="clickable-card" 
                   style={{ gap: "15px", borderBottom: "1px solid #C9C1B0", paddingBottom: "15px", marginBottom: "15px" }}

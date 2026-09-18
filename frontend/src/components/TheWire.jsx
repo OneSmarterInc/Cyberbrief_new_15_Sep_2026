@@ -23,11 +23,26 @@ export default function TheWire({ articles, selectedCategory = "All", onArticleC
     return shuffled.slice(0, 10);
   }, [articles, selectedCategory]);
 
-  // Generate a mock time offset to simulate a live updating feed
-  const formatTime = (dateString, index) => {
-    const d = dateString ? new Date(dateString) : new Date();
-    d.setMinutes(d.getMinutes() - (index * 6)); // Space them out by 6 minutes
-    return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  // Formats the original article time into Eastern Time
+  const formatTime = (dateString) => {
+    if (!dateString) return "Just now";
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) {
+        // Fallback for non-standard RSS dates (extract just the time part if possible)
+        const timeMatch = dateString.match(/\d{1,2}:\d{2}(:\d{2})?/);
+        return timeMatch ? timeMatch[0] : "Latest"; 
+      }
+
+      return new Intl.DateTimeFormat("en-US", {
+        timeZone: "America/New_York",
+        hour: "numeric",
+        minute: "2-digit",
+        timeZoneName: "short"
+      }).format(date);
+    } catch (e) {
+      return "Latest";
+    }
   };
 
   return (
@@ -59,7 +74,6 @@ export default function TheWire({ articles, selectedCategory = "All", onArticleC
             if (isBreach) badgeText = "adds to breach story";
 
             return (
-              // REPLACED <a href> WITH <div onClick>
               <div 
                 onClick={() => {
                   if (onArticleClick) {
@@ -72,9 +86,9 @@ export default function TheWire({ articles, selectedCategory = "All", onArticleC
                 className="wire-clickable"
                 style={{ gap: "15px", paddingBottom: "20px", marginBottom: "20px", borderBottom: "1px solid rgba(243, 238, 227, 0.1)" }}
               >
-                {/* Left Column: Timestamp */}
-                <div style={{ color: "#C9C1B0", fontSize: "14px", width: "45px", flexShrink: 0, marginTop: "2px" }}>
-                  {formatTime(article.published, i)}
+                {/* Left Column: Actual Timestamp in EST */}
+                <div style={{ color: "#C9C1B0", fontSize: "13px", width: "75px", flexShrink: 0, marginTop: "2px" }}>
+                  {formatTime(article.published)}
                 </div>
                 
                 {/* Right Column: Headline and Source */}

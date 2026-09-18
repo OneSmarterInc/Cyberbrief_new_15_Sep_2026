@@ -26,9 +26,9 @@ export default function BookManagement({ authToken }) {
 
  const fetchBooks = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/administration/books/`, { // <-- FIXED HERE
+      const res = await fetch(`${API_BASE_URL}/administration/books/`, {
         headers: { "Authorization": `Token ${authToken}` },
-        credentials: "include" 
+        credentials: "include"
       });
       const data = await res.json();
       if (res.ok) setBooks(data.books || []);
@@ -105,7 +105,6 @@ export default function BookManagement({ authToken }) {
     formData.append("url", purchaseUrl);
     if (bookImage) formData.append("image", bookImage);
 
-    // <-- FIXED HERE
     const url = editingBookId 
       ? `${API_BASE_URL}/administration/books/${editingBookId}/` 
       : `${API_BASE_URL}/administration/books/`;
@@ -116,6 +115,7 @@ export default function BookManagement({ authToken }) {
       const res = await fetch(url, {
         method: method,
         headers: { "Authorization": `Token ${authToken}` },
+        credentials: "include", // <-- FIXED: Added missing credentials
         body: formData
       });
       const data = await res.json();
@@ -145,9 +145,10 @@ export default function BookManagement({ authToken }) {
       type: "confirm",
       onConfirm: async () => {
         try {
-          const res = await fetch(`${API_BASE_URL}/administration/books/${id}/`, { // <-- FIXED HERE
+          const res = await fetch(`${API_BASE_URL}/administration/books/${id}/`, {
             method: "DELETE",
-            headers: { "Authorization": `Token ${authToken}` }
+            headers: { "Authorization": `Token ${authToken}` },
+            credentials: "include" // <-- FIXED: Added missing credentials
           });
           if (res.ok) {
             setBooks(books.filter(b => b.id !== id));

@@ -1,6 +1,28 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { API_BASE_URL } from "../config";
 
+// Helper to format time strictly to Eastern Standard Time (EST)
+const formatToEST = (dateString) => {
+  if (!dateString) return null;
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) {
+      // Fallback for non-standard RSS dates (extract just the time part if possible)
+      const timeMatch = dateString.match(/\d{1,2}:\d{2}(:\d{2})?/);
+      return timeMatch ? `${timeMatch[0]} EST` : "Latest"; 
+    }
+
+    return new Intl.DateTimeFormat("en-US", {
+      timeZone: "EST", // Locked to EST specifically, skipping EDT shifts
+      hour: "numeric",
+      minute: "2-digit",
+      timeZoneName: "short"
+    }).format(date);
+  } catch (e) {
+    return "Latest";
+  }
+};
+
 export default function Navbar({ 
   selectedCategory, setSelectedCategory, user, onSignin, 
   onHome, onRss, onAbout, onBlogs, onBooks, onAdmin, onSubscribe, 
@@ -93,7 +115,30 @@ export default function Navbar({
     });
   };
 
-  const currentDate = useMemo(() => now.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" }), [now]);
+  // Strictly formats the top bar date in EST
+  const currentDate = useMemo(() => {
+    return new Intl.DateTimeFormat("en-US", {
+      timeZone: "EST",
+      weekday: "long", 
+      month: "long", 
+      day: "numeric", 
+      year: "numeric"
+    }).format(now);
+  }, [now]);
+
+  // Dynamically sets the briefing recorded time to EST
+  const recordingTime = useMemo(() => {
+    if (latestPublished) {
+      return formatToEST(latestPublished);
+    }
+    // Fallback to current time in EST if latestPublished is missing
+    return new Intl.DateTimeFormat("en-US", {
+      timeZone: "EST",
+      hour: "numeric",
+      minute: "2-digit",
+      timeZoneName: "short"
+    }).format(now);
+  }, [latestPublished, now]);
 
   const displaySummary = useMemo(() => {
     if (!latestSummary) return "AI-powered news intelligence from your live RSS feeds. Each item links back to the reporting it was built from.";
@@ -235,7 +280,8 @@ export default function Navbar({
         <div className="aggregate-wrap aggregate-briefing-inner">
   
           <div>
-            <div className="aggregate-briefing-label">Latest news briefing <span className="aggregate-briefing-meta">· recorded 6:00 AM ET</span></div>
+            {/* UPDATED: Dynamic Time Formatting applied here */}
+            <div className="aggregate-briefing-label">Latest news briefing <span className="aggregate-briefing-meta">· recorded {recordingTime}</span></div>
             <h2 className="aggregate-briefing-title">{latestHeadline || "Three stories that will shape your Thursday, read by the desk."}</h2>
             <div className="aggregate-briefing-summary">{displaySummary}</div>
           </div>

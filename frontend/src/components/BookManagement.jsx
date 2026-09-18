@@ -26,9 +26,9 @@ export default function BookManagement({ authToken }) {
 
  const fetchBooks = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/admin/books/`, {
+      const res = await fetch(`${API_BASE_URL}/administration/books/`, { // <-- FIXED HERE
         headers: { "Authorization": `Token ${authToken}` },
-        credentials: "include" // <--- ADD THIS LINE
+        credentials: "include" 
       });
       const data = await res.json();
       if (res.ok) setBooks(data.books || []);
@@ -105,9 +105,10 @@ export default function BookManagement({ authToken }) {
     formData.append("url", purchaseUrl);
     if (bookImage) formData.append("image", bookImage);
 
+    // <-- FIXED HERE
     const url = editingBookId 
-      ? `${API_BASE_URL}/admin/books/${editingBookId}/` 
-      : `${API_BASE_URL}/admin/books/`;
+      ? `${API_BASE_URL}/administration/books/${editingBookId}/` 
+      : `${API_BASE_URL}/administration/books/`;
     
     const method = editingBookId ? "PUT" : "POST";
 
@@ -144,7 +145,7 @@ export default function BookManagement({ authToken }) {
       type: "confirm",
       onConfirm: async () => {
         try {
-          const res = await fetch(`${API_BASE_URL}/admin/books/${id}/`, {
+          const res = await fetch(`${API_BASE_URL}/administration/books/${id}/`, { // <-- FIXED HERE
             method: "DELETE",
             headers: { "Authorization": `Token ${authToken}` }
           });
@@ -178,7 +179,6 @@ export default function BookManagement({ authToken }) {
     transition: "all 0.15s ease"
   });
 
-  // HELPER: Resolves URL securely and handles Base64 images
   const getImageUrl = (url) => {
     if (!url) return null;
     if (url.startsWith("http") || url.startsWith("data:image")) return url;
@@ -188,7 +188,6 @@ export default function BookManagement({ authToken }) {
     return `${base}${cleanUrl}`;
   };
 
-  // HELPER: Renders the thumbnail bulletproof
   const renderImageCell = (book) => {
     const imgPath = book.image || book.image_url;
     
@@ -198,11 +197,9 @@ export default function BookManagement({ authToken }) {
 
     return (
       <div style={{ position: "relative", width: "40px", height: "40px" }}>
-        {/* Fallback layer if image breaks */}
         <div style={{ width: "100%", height: "100%", position: "absolute", top: 0, left: 0, display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: "#f5f5f5", borderRadius: "4px", border: "1px solid #ddd", zIndex: 1, fontSize: "9px", color: "#999", textAlign: "center", lineHeight: "1.1" }}>
           Error
         </div>
-        {/* Actual Image Layer */}
         <img
           src={getImageUrl(imgPath)}
           alt="Thumb"
@@ -236,13 +233,8 @@ export default function BookManagement({ authToken }) {
 
       <h1 style={{ fontFamily: "Georgia, serif", borderBottom: "2px solid #161412", paddingBottom: "10px", color: "#161412" }}>Book Management</h1>
       
-      {/* 
-        This is the new Flexbox Wrapper. 
-        It forces the Form (left) and the Table (right) to sit side-by-side. 
-      */}
       <div style={{ display: "flex", gap: "40px", alignItems: "flex-start", marginTop: "25px", flexWrap: "wrap" }}>
         
-        {/* LEFT COLUMN: FORM */}
         <div style={{ flex: "1 1 400px", maxWidth: "600px" }}>
           <form onSubmit={handleSaveBook} style={{ backgroundColor: "#fff", border: "1px solid #161412", borderRadius: "4px", padding: "30px", boxShadow: "0 4px 12px rgba(0,0,0,0.04)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "25px", borderBottom: "1px solid #EBE4D5", paddingBottom: "15px" }}>
@@ -303,7 +295,6 @@ export default function BookManagement({ authToken }) {
           </form>
         </div>
 
-        {/* RIGHT COLUMN: TABLE LIST */}
         <div style={{ flex: "1 1 500px", minWidth: "0" }}>
           <h2 style={{ fontFamily: "Georgia, serif", margin: "0 0 15px 0", fontSize: "20px", color: "#161412" }}>
             Listed Books ({books.length})

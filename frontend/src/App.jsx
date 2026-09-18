@@ -196,12 +196,10 @@ export default function App() {
     }
   }, [authScreen, fetchNews]);
 
-  // --- UPDATED: Silences popup for existing email subscribers ---
   useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search);
     const isSubscriber = searchParams.get("sub") === "true";
 
-    // If they came from the email link, mark them as seen to hide the popup entirely
     if (isSubscriber) {
       sessionStorage.setItem("hasSeenPopup", "true");
     }
@@ -287,7 +285,8 @@ export default function App() {
     return [...available].sort(() => 0.5 - Math.random()).slice(0, 8);
   }, [articles, mostCoveredArticles]);
 
-  const latestArticle = articles[0];
+  // --- FIX: Now explicitly pulls the first ACTIVE/FILTERED article instead of the raw database first ---
+  const latestArticle = filteredArticles[0] || null;
   const currentYear = new Date().getFullYear();
 
   const handleFooterNavigation = (screen) => {
@@ -316,7 +315,7 @@ export default function App() {
           latestHeadline={latestArticle?.title || ""}
           latestSummary={latestArticle?.summary || ""}
           latestPublished={latestArticle?.published || ""}
-          totalStories={articles.length} 
+          totalStories={filteredArticles.length} 
           totalSources={totalSources} 
         />
       )}

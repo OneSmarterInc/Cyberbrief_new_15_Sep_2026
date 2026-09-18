@@ -16,6 +16,27 @@ const getArticleImage = (article) => {
   return localImages[numericId % localImages.length];
 };
 
+// Helper to format date to Eastern Time
+const formatToEST = (dateString) => {
+  if (!dateString) return null;
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return dateString; // Return original if parsing fails
+
+    return new Intl.DateTimeFormat("en-US", {
+      timeZone: "America/New_York",
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      timeZoneName: "short"
+    }).format(date);
+  } catch (e) {
+    return dateString;
+  }
+};
+
 export default function NewsCard({ article, index, onArticleClick }) {
   const [speaking, setSpeaking] = useState(false);
   const [showModal, setShowModal] = useState(false);
@@ -132,7 +153,7 @@ export default function NewsCard({ article, index, onArticleClick }) {
         <div className="meta">
           <span className="category">{(article.category || "NEWS").toUpperCase()}</span>
           <span>{article.source || "NEWS DESK"}</span><i />
-          <span>{article.published || "LATEST"}</span>
+          <span>{formatToEST(article.published) || "LATEST"}</span>
         </div>
 
         <h2>{article.title || article.original_title}</h2>

@@ -16,7 +16,7 @@ const getArticleImage = (article) => {
   return localImages[numericId % localImages.length];
 };
 
-// Helper to format date strictly to Eastern Standard Time (EST)
+// Helper to format date strictly to Eastern Standard Time without the label
 const formatToEST = (dateString) => {
   if (!dateString) return null;
   try {
@@ -29,8 +29,8 @@ const formatToEST = (dateString) => {
       month: "short",
       day: "numeric",
       hour: "numeric",
-      minute: "2-digit",
-      timeZoneName: "short"
+      minute: "2-digit"
+      // timeZoneName removed here to hide "EST"
     }).format(date);
   } catch (e) {
     return dateString;

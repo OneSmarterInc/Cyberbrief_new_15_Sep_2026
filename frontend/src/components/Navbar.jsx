@@ -246,8 +246,9 @@ export default function Navbar({
 
       <div className="aggregate-masthead">
         <button className="aggregate-brand-container" type="button" onClick={goHome}>
-          <h1 className="aggregate-brand">Cyberbriefs</h1>
+          {/* LOGO MOVED TO COME BEFORE TEXT */}
           <img src="/images/logo.png" alt="Cyberbriefs Logo" className="aggregate-logo-img" />
+          <h1 className="aggregate-brand">Cyberbriefs</h1>
         </button>
       </div>
 

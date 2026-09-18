@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { API_BASE_URL } from "../config";
 
-// Helper to format time strictly to Eastern Standard Time (EST)
+// Helper to format time strictly to Eastern Standard Time without the label
 const formatToEST = (dateString) => {
   if (!dateString) return null;
   try {
@@ -9,14 +9,14 @@ const formatToEST = (dateString) => {
     if (isNaN(date.getTime())) {
       // Fallback for non-standard RSS dates (extract just the time part if possible)
       const timeMatch = dateString.match(/\d{1,2}:\d{2}(:\d{2})?/);
-      return timeMatch ? `${timeMatch[0]} EST` : "Latest"; 
+      return timeMatch ? timeMatch[0] : "Latest"; 
     }
 
     return new Intl.DateTimeFormat("en-US", {
       timeZone: "EST", // Locked to EST specifically, skipping EDT shifts
       hour: "numeric",
-      minute: "2-digit",
-      timeZoneName: "short"
+      minute: "2-digit"
+      // timeZoneName removed here to hide "EST"
     }).format(date);
   } catch (e) {
     return "Latest";
@@ -126,7 +126,7 @@ export default function Navbar({
     }).format(now);
   }, [now]);
 
-  // Dynamically sets the briefing recorded time to EST
+  // Dynamically sets the briefing recorded time to EST without the label
   const recordingTime = useMemo(() => {
     if (latestPublished) {
       return formatToEST(latestPublished);
@@ -135,8 +135,7 @@ export default function Navbar({
     return new Intl.DateTimeFormat("en-US", {
       timeZone: "EST",
       hour: "numeric",
-      minute: "2-digit",
-      timeZoneName: "short"
+      minute: "2-digit"
     }).format(now);
   }, [latestPublished, now]);
 

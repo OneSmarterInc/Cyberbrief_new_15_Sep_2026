@@ -6,18 +6,58 @@ export default function BookPage({ onBack }) {
   const [loading, setLoading] = useState(true);
   const [selectedBook, setSelectedBook] = useState(null);
 
+  // 1. Fetch data and check URL for existing book ID (handles Refresh)
   useEffect(() => {
     fetch(`${API_BASE_URL}/books/`)
       .then(res => res.json())
       .then(data => {
-        setBooks(data.books || []);
+        const fetchedBooks = data.books || [];
+        setBooks(fetchedBooks);
         setLoading(false);
+
+        // Check if there is an ID in the URL on load
+        const params = new URLSearchParams(window.location.search);
+        const urlId = params.get("id");
+        if (urlId) {
+          const bookFromUrl = fetchedBooks.find(b => b.id.toString() === urlId);
+          if (bookFromUrl) setSelectedBook(bookFromUrl);
+        }
       })
       .catch(err => {
         console.error(err);
         setLoading(false);
       });
   }, []);
+
+  // 2. Listen to Browser Back/Forward buttons
+  useEffect(() => {
+    const handlePopState = () => {
+      const params = new URLSearchParams(window.location.search);
+      const urlId = params.get("id");
+      if (urlId && books.length > 0) {
+        const bookFromUrl = books.find(b => b.id.toString() === urlId);
+        setSelectedBook(bookFromUrl || null);
+      } else {
+        setSelectedBook(null);
+      }
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, [books]);
+
+  // 3. Custom Handlers to update URL when clicking
+  const handleBookClick = (book) => {
+    setSelectedBook(book);
+    window.scrollTo({ top: 0, behavior: "instant" });
+    window.history.pushState({}, "", `?id=${book.id}`);
+  };
+
+  const handleCloseDetail = () => {
+    setSelectedBook(null);
+    window.scrollTo({ top: 0, behavior: "instant" });
+    window.history.pushState({}, "", window.location.pathname);
+  };
 
   // HELPER: Resolves the image URL safely
   const getImageUrl = (url) => {
@@ -55,7 +95,7 @@ export default function BookPage({ onBack }) {
              ========================================= */
           <div style={{ backgroundColor: "#FDFBF7", padding: "40px", border: "1px solid #161412", borderTop: "4px solid #161412" }}>
             <button 
-              onClick={() => setSelectedBook(null)} 
+              onClick={handleCloseDetail} 
               style={{ background: "none", border: "none", color: "#5E574C", cursor: "pointer", fontSize: "12px", padding: 0, marginBottom: "30px", fontWeight: "bold", letterSpacing: "1px", textTransform: "uppercase" }}
             >
               &larr; Return to Library Grid
@@ -170,7 +210,7 @@ export default function BookPage({ onBack }) {
                   {/* Ghost Button */}
                   <div style={{ marginTop: "auto", borderTop: "1px solid #EBE4D5", paddingTop: "15px" }}>
                     <button 
-                      onClick={() => setSelectedBook(book)}
+                      onClick={() => handleBookClick(book)}
                       style={{ 
                         display: "block", 
                         width: "100%",

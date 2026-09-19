@@ -315,6 +315,7 @@ export default function App() {
           latestHeadline={latestArticle?.title || ""}
           latestSummary={latestArticle?.summary || ""}
           latestPublished={latestArticle?.published || ""}
+          latestId={latestArticle?.id}
           totalStories={filteredArticles.length} 
           totalSources={totalSources} 
         />

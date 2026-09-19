@@ -13,10 +13,9 @@ const formatToEST = (dateString) => {
     }
 
     return new Intl.DateTimeFormat("en-US", {
-      timeZone: "EST", // Locked to EST specifically, skipping EDT shifts
+      timeZone: "EST", 
       hour: "numeric",
       minute: "2-digit"
-      // timeZoneName removed here to hide "EST"
     }).format(date);
   } catch (e) {
     return "Latest";
@@ -26,7 +25,7 @@ const formatToEST = (dateString) => {
 export default function Navbar({ 
   selectedCategory, setSelectedCategory, user, onSignin, 
   onHome, onRss, onAbout, onBlogs, onBooks, onAdmin, onSubscribe, 
-  latestHeadline, latestSummary, latestPublished, latestSource, latestCategory, 
+  latestHeadline, latestSummary, latestPublished, latestSource, latestCategory, latestId,
   totalStories = 0, totalSources = 0, onSearch 
 }) {
   const [speaking, setSpeaking] = useState(false);
@@ -35,6 +34,10 @@ export default function Navbar({
   const [search, setSearch] = useState("");
   const [now, setNow] = useState(new Date());
   
+  // Copy States
+  const [embedCopied, setEmbedCopied] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
+
   // Left Side Drawer State
   const [drawerOpen, setDrawerOpen] = useState(false);
 
@@ -115,7 +118,19 @@ export default function Navbar({
     });
   };
 
-  // Strictly formats the top bar date in EST
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText("https://cyberbrief-new-15-sep-2026.vercel.app/");
+    setLinkCopied(true);
+    setTimeout(() => setLinkCopied(false), 2000);
+  };
+
+  const handleCopyEmbed = () => {
+    const embedCode = `<iframe src="https://cyberbrief-new-15-sep-2026.vercel.app/" width="680" height="120" style="border:0;" loading="lazy" title="Cyberbriefs Newsletter"></iframe>`;
+    navigator.clipboard.writeText(embedCode);
+    setEmbedCopied(true);
+    setTimeout(() => setEmbedCopied(false), 2000);
+  };
+
   const currentDate = useMemo(() => {
     return new Intl.DateTimeFormat("en-US", {
       timeZone: "EST",
@@ -126,12 +141,10 @@ export default function Navbar({
     }).format(now);
   }, [now]);
 
-  // Dynamically sets the briefing recorded time to EST without the label
   const recordingTime = useMemo(() => {
     if (latestPublished) {
       return formatToEST(latestPublished);
     }
-    // Fallback to current time in EST if latestPublished is missing
     return new Intl.DateTimeFormat("en-US", {
       timeZone: "EST",
       hour: "numeric",
@@ -186,6 +199,9 @@ export default function Navbar({
         .aggregate-briefing-meta { color: #5E574C; font-weight: 400; }
         .aggregate-briefing-title { font-family: Georgia, "Times New Roman", serif; font-size: 26px; line-height: 1.1; font-weight: 700; margin: 6px 0; max-width: 760px; }
         .aggregate-briefing-summary { color: #5E574C; font-size: 14px; line-height: 1.4; max-width: 760px; }
+        
+        .aggregate-briefing-link-wrapper { text-decoration: none; color: inherit; display: block; transition: opacity 0.2s; cursor: pointer; }
+        .aggregate-briefing-link-wrapper:hover { opacity: 0.75; }
   
         .aggregate-player-container { display: flex; flex-direction: column; gap: 10px; width: 100%; }
         .aggregate-player { border: 1px solid #161412; padding: 10px 15px; display: flex; align-items: center; gap: 12px; background: #F3EEE3; min-height: 54px; }
@@ -198,6 +214,10 @@ export default function Navbar({
         .aggregate-player-main { flex: 1; min-width: 0; }
         .aggregate-progress { height: 6px; background: #C9C1B0; position: relative; border-radius: 3px; overflow: hidden; }
         .aggregate-progress-fill { height: 100%; background: #161412; }
+
+        .action-buttons-row { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+        .action-btn { border: 1px solid #C9A227; background: transparent; color: #5E574C; padding: 6px 14px; font-size: 11px; font-weight: bold; letter-spacing: 1px; cursor: pointer; transition: all 0.2s ease; white-space: nowrap; }
+        .action-btn:hover { background: #C9A227; color: #161412; }
 
         .side-drawer-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); z-index: 9998; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
         .side-drawer-overlay.open { opacity: 1; pointer-events: auto; }
@@ -222,6 +242,7 @@ export default function Navbar({
           .aggregate-brand { font-size: clamp(40px, 9vw, 65px); letter-spacing: -3px; }
           .aggregate-logo-img { width: clamp(40px, 9vw, 65px); height: clamp(40px, 9vw, 65px); }
           .aggregate-briefing-title { font-size: clamp(22px, 5vw, 26px); }
+          .action-buttons-row { justify-content: center; }
         }
         @media (prefers-reduced-motion: reduce) {
           .aggregate-clone *, .aggregate-clone *::after, .aggregate-clone *::before { transition: none !important; }
@@ -279,10 +300,15 @@ export default function Navbar({
         <div className="aggregate-wrap aggregate-briefing-inner">
   
           <div>
-            {/* UPDATED: Dynamic Time Formatting applied here */}
-            <div className="aggregate-briefing-label">Latest news briefing <span className="aggregate-briefing-meta">· recorded {recordingTime}</span></div>
-            <h2 className="aggregate-briefing-title">{latestHeadline || "Three stories that will shape your Thursday, read by the desk."}</h2>
-            <div className="aggregate-briefing-summary">{displaySummary}</div>
+            <a 
+              href={latestId ? `/?article_id=${latestId}` : "#"} 
+              className="aggregate-briefing-link-wrapper"
+              title={latestId ? "Read full article" : ""}
+            >
+              <div className="aggregate-briefing-label">Latest news briefing <span className="aggregate-briefing-meta">· recorded {recordingTime}</span></div>
+              <h2 className="aggregate-briefing-title">{latestHeadline || "Three stories that will shape your Thursday, read by the desk."}</h2>
+              <div className="aggregate-briefing-summary">{displaySummary}</div>
+            </a>
           </div>
   
           <div className="aggregate-player-container">
@@ -326,8 +352,40 @@ export default function Navbar({
                 SEARCH
               </button>
             </form>
+
+            {/* Action Buttons Row */}
+            <div className="action-buttons-row">
+              <button 
+                type="button" 
+                className="action-btn" 
+                onClick={handleCopyLink}
+              >
+                {linkCopied ? "COPIED!" : "COPY LINK"}
+              </button>
+              <button 
+                type="button" 
+                className="action-btn" 
+                onClick={handleCopyEmbed}
+              >
+                {embedCopied ? "COPIED!" : "COPY EMBED"}
+              </button>
+              <button 
+                type="button" 
+                className="action-btn" 
+                onClick={() => window.open('https://x.com/', '_blank')}
+              >
+                TWEET
+              </button>
+              <button 
+                type="button" 
+                className="action-btn" 
+                onClick={(e) => handleNavClick(e, "/rss", onRss)}
+              >
+                PODCAST RSS
+              </button>
+            </div>
+
           </div>
-  
         </div>
       </section>
     </header>

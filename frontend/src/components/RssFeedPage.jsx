@@ -1,22 +1,25 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { API_BASE_URL } from "../config";
 
-// Local fallback images from the public folder
-const localImages = [
-  "/images/news_1.jpg", "/images/news_2.jpg", "/images/news_3.jpg",
-  "/images/news_4.jpg", "/images/news_5.jpg", "/images/news_6.jpg", 
-  "/images/news_7.jpg", "/images/news_8.jpg", "/images/news_9.jpg", 
-  "/images/news_10.jpg", "/images/news_11.jpg", "/images/news_12.jpg", 
-  "/images/news_13.jpg", "/images/news_14.jpg", "/images/news_15.jpg",
+const feedImages = [
+  "/images/Feed_1.jpg", "/images/Feed_2.jpg", "/images/Feed_3.jpg",
+  "/images/Feed_4.jpg", "/images/Feed_5.jpg", "/images/Feed_6.jpg", 
+  "/images/Feed_7.jpg"
 ];
+
+const PROF_NAMES = [
+  "Arion Vale", "Lyra Sen", "Kael Nore", "Elara Quinn", 
+  "Dorian Kade", "Mira Solen", "Orion Blake", "Seraphina Rowe"
+];
+const getProfName = (id) => PROF_NAMES[(id || 1) - 1] || PROF_NAMES[0];
+
 const getArticleImage = (article) => {
-  if (!article) return localImages[0];
-  const numericId = Number(article.id) || Math.abs(article.title?.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0)) || 1;
-  return localImages[numericId % localImages.length];
+  if (!article) return "/images/Proff_1.png";
+  const profId = article.professor_id || 1; 
+  return `/images/Proff_${profId}.png`; 
 };
 
 export default function RssFeedPage({ articles, onBack }) {
-  // 1. Initialize state directly from the URL so Refreshing the page works
   const [selectedSource, setSelectedSource] = useState(() => {
     return new URLSearchParams(window.location.search).get("source") || null;
   });
@@ -27,13 +30,11 @@ export default function RssFeedPage({ articles, onBack }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [dbSources, setDbSources] = useState([]);
 
-  // Fetch active RSS sources directly from the backend database so newly enabled feeds always show up
   useEffect(() => {
     fetch(`${API_BASE_URL}/admin/feeds/`, { credentials: "include" })
       .then(res => res.json())
       .then(data => {
         if (data.feeds) {
-          // Filter only active feeds from the database
           const activeNames = data.feeds.filter(f => f.is_active !== false).map(f => f.name);
           setDbSources(activeNames);
         }
@@ -41,7 +42,6 @@ export default function RssFeedPage({ articles, onBack }) {
       .catch(err => console.error("Failed to fetch RSS feeds", err));
   }, []);
 
-  // 2. Listen to the Browser's Back/Forward buttons and update the view automatically
   useEffect(() => {
     const handlePopState = () => {
       const params = new URLSearchParams(window.location.search);
@@ -52,13 +52,11 @@ export default function RssFeedPage({ articles, onBack }) {
     return () => window.removeEventListener("popstate", handlePopState);
   }, []);
 
-  // 3. Find the actual article object based on the ID in the URL
   const selectedArticle = useMemo(() => {
     if (!selectedArticleId || !articles) return null;
     return articles.find(a => String(a.id) === String(selectedArticleId)) || null;
   }, [articles, selectedArticleId]);
 
-  // Combine database sources and article sources to ensure zero missing active feeds
   const uniqueSources = useMemo(() => {
     const articleSources = articles.filter(a => a.is_active !== false && a.source).map(a => a.source);
     return Array.from(new Set([...dbSources, ...articleSources])).sort();
@@ -80,7 +78,6 @@ export default function RssFeedPage({ articles, onBack }) {
     });
   }, [articles, selectedSource, searchQuery]);
 
-  // Handle clicking the on-screen "Back" button
   const handleBack = () => {
     if (selectedArticleId) {
       const url = `/rss?source=${encodeURIComponent(selectedSource)}`;
@@ -116,7 +113,6 @@ export default function RssFeedPage({ articles, onBack }) {
     <div style={{ minHeight: "100vh", backgroundColor: "#F3EEE3", fontFamily: "Arial, sans-serif", color: "#161412", padding: "40px 20px" }}>
       <div style={{ maxWidth: "1400px", margin: "0 auto" }}>
         
-        {/* Top Navigation Bar */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "40px", borderBottom: "2px solid #161412", paddingBottom: "15px" }}>
           <h2 style={{ fontFamily: "Georgia, serif", margin: 0, fontSize: "28px", color: "#161412" }}>
             {selectedArticle 
@@ -139,10 +135,9 @@ export default function RssFeedPage({ articles, onBack }) {
           </button>
         </div>
 
-        {/* CONDITION 3: SHOW PROFESSIONAL DETAILED ARTICLE VIEW */}
         {selectedArticle ? (
           (() => {
-            const displayImage = localImages[selectedArticle.id % localImages.length];
+            const displayImage = getArticleImage(selectedArticle);
             let hash = 0;
             const sourceName = selectedArticle.source || "News";
             for (let i = 0; i < sourceName.length; i++) hash = sourceName.charCodeAt(i) + ((hash << 5) - hash);
@@ -152,11 +147,10 @@ export default function RssFeedPage({ articles, onBack }) {
               <div style={{ maxWidth: "950px", margin: "0 auto", width: "100%" }}>
                 <div style={{ backgroundColor: "#F3EEE3", borderRadius: "12px", border: "1px solid #161412", overflow: "hidden", boxShadow: "0 8px 30px rgba(0,0,0,0.08)" }}>
                   
-                  {/* Hero Image with Gradient Overlay */}
                   <div style={{ position: "relative", width: "100%", height: "450px", backgroundColor: "#111" }}>
                     <img 
                       src={displayImage} 
-                      alt="Article Cover" 
+                      alt={getProfName(selectedArticle.professor_id)} 
                       style={{ width: "100%", height: "100%", objectFit: "cover" }} 
                     />
                     
@@ -183,7 +177,7 @@ export default function RssFeedPage({ articles, onBack }) {
                         </div>
                         <div>
                           <div style={{ fontSize: "14px", fontWeight: "bold", color: "#F3EEE3", letterSpacing: "0.5px" }}>
-                            {sourceName}
+                            {sourceName} • {getProfName(selectedArticle.professor_id).toUpperCase()}
                           </div>
                           <div style={{ fontSize: "13px", color: "#C9C1B0", marginTop: "2px" }}>
                             {selectedArticle.published || "Recently Added"}
@@ -193,7 +187,6 @@ export default function RssFeedPage({ articles, onBack }) {
                     </div>
                   </div>
 
-                  {/* Article Content Section */}
                   <div style={{ padding: "40px", backgroundColor: "#F3EEE3" }}>
                     <p style={{ fontSize: "18px", color: "#161412", lineHeight: "1.8", margin: "0 0 50px 0", fontFamily: "Arial, sans-serif" }}>
                       {selectedArticle.summary || "No summary is available for this article at this time. Click the original article link below to read the full coverage."}
@@ -236,7 +229,6 @@ export default function RssFeedPage({ articles, onBack }) {
             );
           })()
 
-        /* CONDITION 1: SHOW THE GRID OF RSS SOURCES */
         ) : !selectedSource ? (
           uniqueSources.length === 0 ? (
             <div style={{ textAlign: "center", padding: "50px", backgroundColor: "#F3EEE3", border: "1px solid #161412", borderRadius: "8px" }}>
@@ -245,7 +237,7 @@ export default function RssFeedPage({ articles, onBack }) {
           ) : (
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(350px, 1fr))", gap: "40px" }}>
               {uniqueSources.map((source, index) => {
-                const sourceImage = localImages[index % localImages.length];
+                const sourceImage = feedImages[index % feedImages.length];
 
                 return (
                   <div 
@@ -296,8 +288,6 @@ export default function RssFeedPage({ articles, onBack }) {
             </div>
           )
         ) : (
-          
-          /* CONDITION 2: SHOW THE DETAILED LIST OF ARTICLES FOR THE SELECTED SOURCE */
           <div style={{ maxWidth: "1350px", margin: "0 auto" }}>
             
             <h1 style={{ textAlign: "center", color: "#161412", fontFamily: "Georgia, serif", fontSize: "42px", fontWeight: "bold", margin: "0 0 25px 0" }}>
@@ -330,7 +320,7 @@ export default function RssFeedPage({ articles, onBack }) {
                 <p style={{ textAlign: "center", color: "#5E574C", fontSize: "20px", marginTop: "20px" }}>No articles match your search or this source has not fetched articles yet.</p>
               ) : (
                 sourceArticles.map((article) => {
-                  const displayImage = localImages[article.id % localImages.length];
+                  const displayImage = getArticleImage(article);
                   
                   return (
                     <div 
@@ -367,7 +357,7 @@ export default function RssFeedPage({ articles, onBack }) {
                       }}>
                         <img 
                           src={displayImage} 
-                          alt="Article" 
+                          alt={getProfName(article.professor_id)} 
                           style={{ width: "100%", height: "240px", objectFit: "contain", borderRadius: "4px" }} 
                         />
                       </div>
@@ -390,7 +380,7 @@ export default function RssFeedPage({ articles, onBack }) {
                         </h3>
                         
                         <div style={{ fontSize: "14px", color: "#8F7118", fontWeight: "bold", marginBottom: "15px" }}>
-                          {article.published || "Recent"}
+                          {article.published || "Recent"} • {getProfName(article.professor_id).toUpperCase()}
                         </div>
                         
                         <p style={{ fontSize: "16px", color: "#5E574C", lineHeight: "1.6", margin: 0 }}>

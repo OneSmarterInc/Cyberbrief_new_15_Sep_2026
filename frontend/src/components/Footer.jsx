@@ -10,7 +10,6 @@ export default function Footer({ setAuthScreen }) {
     facebook: "",
     linkedin: ""
   });
-  const [copied, setCopied] = useState(false);
 
   const currentYear = new Date().getFullYear();
 
@@ -22,15 +21,6 @@ export default function Footer({ setAuthScreen }) {
       })
       .catch(err => console.error("Failed to load social links", err));
   }, []);
-
-  const handleEmailClick = (e, emailVal) => {
-    e.preventDefault();
-    const cleanEmail = emailVal.replace(/^mailto:/, "");
-    navigator.clipboard.writeText(cleanEmail).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2500);
-    });
-  };
 
   const icons = {
     twitter: (
@@ -88,13 +78,6 @@ export default function Footer({ setAuthScreen }) {
   return (
     <footer style={{ backgroundColor: "#161412", color: "#F3EEE3", padding: "40px 20px", marginTop: "auto", fontFamily: "Arial, sans-serif", position: "relative" }}>
       
-      {/* Copied Notification Toast */}
-      {copied && (
-        <div style={{ position: "absolute", bottom: "90px", left: "50%", transform: "translateX(-50%)", backgroundColor: "#C9A227", color: "#161412", padding: "6px 16px", borderRadius: "4px", fontSize: "12px", fontWeight: "bold", zIndex: 1000, boxShadow: "0 4px 12px rgba(0,0,0,0.2)" }}>
-          Email copied to clipboard!
-        </div>
-      )}
-
       <div style={{ maxWidth: "1200px", margin: "0 auto", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "20px" }}>
         
         <div>
@@ -130,9 +113,9 @@ export default function Footer({ setAuthScreen }) {
           )}
           {socials.email && (
             <a 
-              href="#copy-email" 
-              onClick={(e) => handleEmailClick(e, socials.email)} 
-              title="Click to copy email" 
+              // FIXED: Formats the email strictly as a mailto: link to open the email client
+              href={socials.email.startsWith("mailto:") ? socials.email : `mailto:${socials.email}`} 
+              title="Send an email" 
               style={iconLinkStyle}
             >
               {icons.email}

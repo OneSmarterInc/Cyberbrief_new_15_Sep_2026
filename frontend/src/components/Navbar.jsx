@@ -169,8 +169,8 @@ export default function Navbar({
   const displaySummary = useMemo(() => {
     if (!latestSummary) return "AI-powered news intelligence from your live RSS feeds. Each item links back to the reporting it was built from.";
     const words = latestSummary.split(" ");
-    if (words.length > 30) {
-      return words.slice(0, 30).join(" ") + "...";
+    if (words.length > 28) {
+      return words.slice(0, 28).join(" ") + "...";
     }
     return latestSummary;
   }, [latestSummary]);
@@ -182,83 +182,84 @@ export default function Navbar({
         .aggregate-clone * { box-sizing: border-box; }
         .aggregate-wrap { width: 100%; max-width: 1455px; margin: 0 auto; padding: 0 20px; }
   
-        .aggregate-topbar { min-height: 43px; border-top: 1px solid #161412; border-bottom: 1px solid #161412; display: flex; align-items: center; justify-content: space-between; padding: 0 24px; color: #5E574C; font-size: 14px; width: 100%; flex-wrap: wrap; background: #F3EEE3; position: relative; z-index: 50; }
-        .aggregate-top-left { display: flex; align-items: center; gap: 10px; padding: 10px 0; flex: 1; }
-        .aggregate-live-dot { width: 9px; height: 9px; border-radius: 50%; background: #1F3A2E; display: inline-block; flex: none; }
+        /* MEDIUM TOPBAR */
+        .aggregate-topbar { min-height: 38px; border-top: 1px solid #161412; border-bottom: 1px solid #161412; display: flex; align-items: center; justify-content: space-between; padding: 0 22px; color: #5E574C; font-size: 13.5px; width: 100%; flex-wrap: wrap; background: #F3EEE3; position: relative; z-index: 50; }
+        .aggregate-top-left { display: flex; align-items: center; gap: 9px; padding: 8px 0; flex: 1; }
+        .aggregate-live-dot { width: 8px; height: 8px; border-radius: 50%; background: #1F3A2E; display: inline-block; flex: none; }
   
-        .hamburger-icon { background: transparent; border: none; color: #161412; font-size: 22px; cursor: pointer; display: flex; align-items: center; padding: 0 10px 0 0; transition: color 0.2s ease; }
+        .hamburger-icon { background: transparent; border: none; color: #161412; font-size: 20px; cursor: pointer; display: flex; align-items: center; padding: 0 9px 0 0; transition: color 0.2s ease; }
         .hamburger-icon:hover { color: #C9A227; }
 
-        .aggregate-top-right { display: flex; align-items: stretch; height: 43px; }
-        .aggregate-top-link { position: relative; color: #5E574C; text-decoration: none; display: flex; align-items: center; padding: 0 14px; cursor: pointer; transition: color .2s ease, background-color .2s ease; }
-        .aggregate-top-link::after { content: ""; position: absolute; left: 14px; right: 14px; bottom: 7px; height: 2px; background: #C9A227; transform: scaleX(0); transform-origin: center; transition: transform .2s ease; }
+        .aggregate-top-right { display: flex; align-items: stretch; height: 38px; }
+        .aggregate-top-link { position: relative; color: #5E574C; text-decoration: none; display: flex; align-items: center; padding: 0 13px; font-size: 13.5px; cursor: pointer; transition: color .2s ease, background-color .2s ease; }
+        .aggregate-top-link::after { content: ""; position: absolute; left: 13px; right: 13px; bottom: 6px; height: 2px; background: #C9A227; transform: scaleX(0); transform-origin: center; transition: transform .2s ease; }
         .aggregate-top-link:focus-visible, .aggregate-top-link:hover { color: #161412; background: rgba(201,162,39,.08); outline: 0; }
         .aggregate-top-link:focus-visible::after, .aggregate-top-link:hover::after { transform: scaleX(1); }
   
-        .aggregate-subscribe { border: 0; background: #C9A227; color: #161412; font-weight: 700; padding: 0 18px; cursor: pointer; font-size: 14px; transition: background-color .2s ease, color .2s ease, transform .15s ease; display: inline-flex; align-items: center; justify-content: center; }
+        .aggregate-subscribe { border: 0; background: #C9A227; color: #161412; font-weight: 700; padding: 0 16px; cursor: pointer; font-size: 13.5px; transition: background-color .2s ease, color .2s ease, transform .15s ease; display: inline-flex; align-items: center; justify-content: center; }
         .aggregate-subscribe:focus-visible, .aggregate-subscribe:hover { background: #8F7118; color: #F3EEE3; outline: 0; }
         .aggregate-subscribe:active { transform: translateY(1px); }
   
-        .aggregate-masthead { padding: 30px 20px; border-bottom: 1px solid #161412; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
-        .aggregate-brand-container { border: 0; background: transparent; padding: 0; margin: 0; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 15px; transition: opacity .2s ease, transform .2s ease; }
+        /* MEDIUM MASTHEAD */
+        .aggregate-masthead { padding: 22px 20px; border-bottom: 1px solid #161412; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+        .aggregate-brand-container { border: 0; background: transparent; padding: 0; margin: 0; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 14px; transition: opacity .2s ease, transform .2s ease; }
         .aggregate-brand-container:hover { opacity: 0.9; }
         .aggregate-brand-container:active { transform: scale(.995); }
   
-        .aggregate-brand { font-family: Georgia, "Times New Roman", serif; font-size: clamp(50px, 7vw, 95px); line-height: .82; font-weight: 900; letter-spacing: -4px; color: #161412; margin: 0; }
-        .aggregate-logo-img { width: clamp(50px, 7vw, 90px); height: clamp(50px, 7vw, 90px); object-fit: contain; border-radius: 8px; }
+        .aggregate-brand { font-family: Georgia, "Times New Roman", serif; font-size: clamp(44px, 6vw, 78px); line-height: .83; font-weight: 900; letter-spacing: -3px; color: #161412; margin: 0; }
+        .aggregate-logo-img { width: clamp(44px, 6vw, 75px); height: clamp(44px, 6vw, 75px); object-fit: contain; border-radius: 7px; }
 
-        .aggregate-briefing { padding: 15px 0; background: #EBE4D5; border-bottom: 1px solid #161412; }
-        .aggregate-briefing-inner { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: start; }
-        .aggregate-briefing-label { color: #8F7118; font-size: 12px; font-weight: 700; }
+        /* MEDIUM BRIEFING */
+        .aggregate-briefing { padding: 14px 0; background: #EBE4D5; border-bottom: 1px solid #161412; }
+        .aggregate-briefing-inner { display: grid; grid-template-columns: 1fr 1fr; gap: 35px; align-items: start; }
+        .aggregate-briefing-label { color: #8F7118; font-size: 11.5px; font-weight: 700; }
         .aggregate-briefing-meta { color: #5E574C; font-weight: 400; }
-        .aggregate-briefing-title { font-family: Georgia, "Times New Roman", serif; font-size: 26px; line-height: 1.1; font-weight: 700; margin: 6px 0; max-width: 760px; }
-        .aggregate-briefing-summary { color: #5E574C; font-size: 14px; line-height: 1.4; max-width: 760px; }
+        .aggregate-briefing-title { font-family: Georgia, "Times New Roman", serif; font-size: 23px; line-height: 1.15; font-weight: 700; margin: 5px 0; max-width: 760px; }
+        .aggregate-briefing-summary { color: #5E574C; font-size: 13.5px; line-height: 1.4; max-width: 760px; }
         
         .aggregate-briefing-link-wrapper { text-decoration: none; color: inherit; display: block; transition: opacity 0.2s; cursor: pointer; }
         .aggregate-briefing-link-wrapper:hover { opacity: 0.75; }
   
-        /* DECREASED WIDTH OF SOUND BOX & SEARCH BOX */
-        .aggregate-player-container { display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 580px; }
+        .aggregate-player-container { display: flex; flex-direction: column; gap: 8px; width: 100%; max-width: 530px; }
         
-        .aggregate-player { border: 1px solid #161412; padding: 6px 14px; display: flex; align-items: center; gap: 14px; background: #F3EEE3; min-height: 44px; width: 100%; }
-        .aggregate-play { width: 30px; height: 30px; border-radius: 50%; border: 0; background: #161412; color: #F3EEE3; display: flex; align-items: center; justify-content: center; cursor: pointer; flex: none; font-size: 12px; }
+        .aggregate-player { border: 1px solid #161412; padding: 5px 12px; display: flex; align-items: center; gap: 11px; background: #F3EEE3; min-height: 40px; width: 100%; }
+        .aggregate-play { width: 27px; height: 27px; border-radius: 50%; border: 0; background: #161412; color: #F3EEE3; display: flex; align-items: center; justify-content: center; cursor: pointer; flex: none; font-size: 11px; }
         .aggregate-play.active, .aggregate-play:hover { background: #8F7118; }
   
         @keyframes spin { 100% { transform: rotate(360deg); } }
-        .buffering-icon { display: inline-block; animation: spin 2s linear infinite; font-size: 12px; }
+        .buffering-icon { display: inline-block; animation: spin 2s linear infinite; font-size: 11px; }
 
-        .aggregate-player-main { flex: 1; min-width: 0; display: flex; align-items: center; gap: 14px; }
-        .aggregate-progress { flex: 1; height: 4px; background: #C9C1B0; position: relative; border-radius: 2px; overflow: hidden; }
+        .aggregate-player-main { flex: 1; min-width: 0; display: flex; align-items: center; gap: 11px; }
+        .aggregate-progress { flex: 1; height: 3.5px; background: #C9C1B0; position: relative; border-radius: 2px; overflow: hidden; }
         .aggregate-progress-fill { height: 100%; background: #161412; }
 
-        /* INCREASED SPACE BETWEEN ACTION BUTTONS */
-        .action-buttons-row { display: flex; gap: 16px; margin-top: 8px; flex-wrap: wrap; }
-        .action-btn { border: 1px solid #C9A227; background: transparent; color: #5E574C; padding: 6px 14px; font-size: 11px; font-weight: bold; letter-spacing: 1px; cursor: pointer; transition: all 0.2s ease; white-space: nowrap; }
+        .action-buttons-row { display: flex; gap: 12px; margin-top: 6px; flex-wrap: wrap; }
+        .action-btn { border: 1px solid #C9A227; background: transparent; color: #5E574C; padding: 5px 12px; font-size: 10.5px; font-weight: bold; letter-spacing: 0.8px; cursor: pointer; transition: all 0.2s ease; white-space: nowrap; }
         .action-btn:hover { background: #C9A227; color: #161412; }
 
         .side-drawer-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); z-index: 9998; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
         .side-drawer-overlay.open { opacity: 1; pointer-events: auto; }
   
-        .side-drawer { position: fixed; top: 0; left: -320px; width: 300px; height: 100vh; background: #161412; color: #F3EEE3; z-index: 9999; transition: left 0.3s ease; padding: 40px 30px; box-shadow: 5px 0 15px rgba(0,0,0,0.5); display: flex; flex-direction: column; }
+        .side-drawer { position: fixed; top: 0; left: -320px; width: 290px; height: 100vh; background: #161412; color: #F3EEE3; z-index: 9999; transition: left 0.3s ease; padding: 35px 25px; box-shadow: 5px 0 15px rgba(0,0,0,0.5); display: flex; flex-direction: column; }
         .side-drawer.open { left: 0; }
-        .drawer-close { align-self: flex-end; background: transparent; border: none; color: #C9C1B0; font-size: 24px; cursor: pointer; padding: 0; margin-bottom: 40px; transition: color 0.2s; }
+        .drawer-close { align-self: flex-end; background: transparent; border: none; color: #C9C1B0; font-size: 22px; cursor: pointer; padding: 0; margin-bottom: 30px; transition: color 0.2s; }
         .drawer-close:hover { color: #C9A227; }
   
-        .drawer-link { display: block; color: #F3EEE3; text-decoration: none; font-size: 22px; font-family: Georgia, serif; padding: 15px 0; border-bottom: 1px solid #332F2C; cursor: pointer; transition: color 0.2s ease, padding-left 0.2s ease; }
-        .drawer-link:hover { color: #C9A227; padding-left: 10px; }
+        .drawer-link { display: block; color: #F3EEE3; text-decoration: none; font-size: 20px; font-family: Georgia, serif; padding: 12px 0; border-bottom: 1px solid #332F2C; cursor: pointer; transition: color 0.2s ease, padding-left 0.2s ease; }
+        .drawer-link:hover { color: #C9A227; padding-left: 9px; }
   
         @media (max-width: 980px) {
-          .aggregate-briefing-inner { grid-template-columns: 1fr; gap: 20px; }
+          .aggregate-briefing-inner { grid-template-columns: 1fr; gap: 18px; }
         }
         @media (max-width: 760px) {
-          .aggregate-topbar { padding: 0 15px; }
-          .aggregate-top-left { font-size: 12px; }
+          .aggregate-topbar { padding: 0 14px; }
+          .aggregate-top-left { font-size: 11.5px; }
           .aggregate-top-right { display: none; }
-          .aggregate-subscribe { margin-top: 10px; height: 40px; align-self: flex-start; }
-          .aggregate-masthead { padding: 20px 15px; }
-          .aggregate-brand { font-size: clamp(40px, 9vw, 65px); letter-spacing: -3px; }
-          .aggregate-logo-img { width: clamp(40px, 9vw, 65px); height: clamp(40px, 9vw, 65px); }
-          .aggregate-briefing-title { font-size: clamp(22px, 5vw, 26px); }
+          .aggregate-subscribe { margin-top: 8px; height: 36px; align-self: flex-start; }
+          .aggregate-masthead { padding: 18px 14px; }
+          .aggregate-brand { font-size: clamp(36px, 85vw, 58px); letter-spacing: -2.5px; }
+          .aggregate-logo-img { width: clamp(36px, 8.5vw, 58px); height: clamp(36px, 8.5vw, 58px); }
+          .aggregate-briefing-title { font-size: 20px; }
           .action-buttons-row { justify-content: center; }
         }
         @media (prefers-reduced-motion: reduce) {
@@ -282,10 +283,10 @@ export default function Navbar({
         <a className="drawer-link" onClick={(e) => handleNavClick(e, "/books", onBooks)}>Books</a>
         <a className="drawer-link" onClick={(e) => handleNavClick(e, "/join", null)}>Careers</a>
         
-        <div style={{ marginTop: "auto", paddingTop: "20px" }}>
+        <div style={{ marginTop: "auto", paddingTop: "18px" }}>
           <button 
             className="aggregate-subscribe" 
-            style={{ width: "100%", padding: "15px", fontSize: "16px" }} 
+            style={{ width: "100%", padding: "12px", fontSize: "15px" }} 
             onClick={(e) => { e.preventDefault(); setDrawerOpen(false); if (onSubscribe) onSubscribe(); }}
           >
             Subscribe
@@ -350,26 +351,24 @@ export default function Navbar({
                     }} 
                   />
                 </div>
-                {/* Timer format: 0:00 / 0:00 matching reference image */}
-                <div style={{ fontSize: "12px", color: "#5E574C", fontWeight: "bold", whiteSpace: "nowrap", fontFamily: "Arial, sans-serif" }}>
+                <div style={{ fontSize: "11.5px", color: "#5E574C", fontWeight: "bold", whiteSpace: "nowrap", fontFamily: "Arial, sans-serif" }}>
                   {formatTimeSeconds(currentTime)} / {duration ? formatTimeSeconds(duration) : "0:00"}
                 </div>
               </div>
             </div>
 
-            {/* SEARCH BOX WITH CONTROLLED WIDTH MATCHING SOUND BOX */}
-            <form onSubmit={submitSearch} style={{ display: "flex", height: "36px", width: "100%" }}>
+            <form onSubmit={submitSearch} style={{ display: "flex", height: "34px", width: "100%" }}>
               <input 
                 type="search" 
                 value={search} 
                 onChange={(e) => setSearch(e.target.value)} 
                 placeholder="Search stories..." 
                 aria-label="Search stories"
-                style={{ flex: 1, border: "1px solid #C9C1B0", borderRight: "none", background: "#F3EEE3", color: "#161412", padding: "0 14px", fontSize: "13px", outline: "none" }}
+                style={{ flex: 1, border: "1px solid #C9C1B0", borderRight: "none", background: "#F3EEE3", color: "#161412", padding: "0 12px", fontSize: "12.5px", outline: "none" }}
               />
               <button 
                 type="submit"
-                style={{ backgroundColor: "#161412", color: "#F3EEE3", border: "none", padding: "0 18px", fontWeight: "bold", cursor: "pointer", fontSize: "12px", transition: "background 0.2s" }}
+                style={{ backgroundColor: "#161412", color: "#F3EEE3", border: "none", padding: "0 16px", fontWeight: "bold", cursor: "pointer", fontSize: "11.5px", transition: "background 0.2s" }}
                 onMouseOver={(e) => e.target.style.backgroundColor = "#8F7118"}
                 onMouseOut={(e) => e.target.style.backgroundColor = "#161412"}
               >

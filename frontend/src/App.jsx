@@ -12,6 +12,8 @@ import HomeFeed from "./components/HomeFeed";
 import BlogPage from "./components/BlogPage";
 import BookPage from "./components/BookPage"; 
 import RssFeedPage from "./components/RssFeedPage";
+import NewsroomPage from "./components/NewsroomPage"; 
+import JoinNewswire from "./components/JoinNewswire"; // <-- IMPORTED HERE
 
 const TOKEN_KEY = "newsai_token";
 const USER_KEY = "newsai_user";
@@ -78,7 +80,6 @@ export default function App() {
       if (path === "/admin") {
         const currentToken = sessionStorage.getItem(TOKEN_KEY);
         const savedUser = JSON.parse(sessionStorage.getItem(USER_KEY) || "null");
-        
         if (currentToken && savedUser && savedUser.is_admin) {
           setAuthScreen("admin");
         } else {
@@ -93,6 +94,10 @@ export default function App() {
         setAuthScreen("book");
       } else if (path === "/rss") {
         setAuthScreen("rss");
+      } else if (path === "/newsroom") { 
+        setAuthScreen("newsroom");
+      } else if (path === "/join") { // <-- ROUTE ADDED HERE
+        setAuthScreen("join");
       } else if (path === "/how") {
         setAuthScreen("about");
       } else if (path === "/privacy") {
@@ -119,9 +124,7 @@ export default function App() {
 
     window.addEventListener("popstate", handleRouting);
     window.addEventListener("hashchange", handleRouting); 
-    
     handleRouting(); 
-    
     return () => {
       window.removeEventListener("popstate", handleRouting);
       window.removeEventListener("hashchange", handleRouting);
@@ -133,10 +136,8 @@ export default function App() {
     setUser(data.user);
     sessionStorage.setItem(TOKEN_KEY, data.token);
     sessionStorage.setItem(USER_KEY, JSON.stringify(data.user));
-    
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
-    
     if (data.user?.is_admin) navigate("/admin");
     else navigate("/");
   };
@@ -153,13 +154,8 @@ export default function App() {
     navigate(category === "All" ? "/" : `/section/${category.toLowerCase().replace(/\s+/g, "-")}`);
   };
 
-  const handleHome = () => {
-    navigate("/");
-  };
-
-  const handleSearch = (query) => {
-    navigate(`/search?q=${encodeURIComponent(query)}`);
-  };
+  const handleHome = () => navigate("/");
+  const handleSearch = (query) => navigate(`/search?q=${encodeURIComponent(query)}`);
 
   const handlePageChange = (newPage) => {
     setCurrentPage(newPage);
@@ -176,10 +172,7 @@ export default function App() {
       if (!response.ok) throw new Error(`News API returned ${response.status}`);
       const result = await response.json();
       setArticles(result.articles || []);
-      
-      if (result.total_sources !== undefined) {
-        setTotalSources(result.total_sources);
-      }
+      if (result.total_sources !== undefined) setTotalSources(result.total_sources);
     } catch {
       setError("Unable to load news. Check that the Django server is running.");
     } finally {
@@ -189,7 +182,7 @@ export default function App() {
   }, [token]);
 
   useEffect(() => {
-    if (!authScreen || authScreen === "admin" || authScreen === "rss") {
+    if (!authScreen || authScreen === "admin" || authScreen === "rss" || authScreen === "newsroom") {
       fetchNews(); 
       const intervalId = setInterval(() => { fetchNews(false); }, 1800000); 
       return () => clearInterval(intervalId); 
@@ -199,11 +192,7 @@ export default function App() {
   useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search);
     const isSubscriber = searchParams.get("sub") === "true";
-
-    if (isSubscriber) {
-      sessionStorage.setItem("hasSeenPopup", "true");
-    }
-
+    if (isSubscriber) sessionStorage.setItem("hasSeenPopup", "true");
     if (!authScreen && !sessionStorage.getItem("hasSeenPopup")) {
       const timer = setTimeout(() => {
         setShowSubPopup(true);
@@ -217,7 +206,6 @@ export default function App() {
     e.preventDefault();
     if (!subEmail.trim()) return;
     setSubStatus("loading");
-    
     try {
       const res = await fetch(`${API_BASE_URL}/subscribe/`, {
         method: "POST",
@@ -226,7 +214,6 @@ export default function App() {
         credentials: 'include'
       });
       const data = await res.json();
-      
       if (res.ok) {
         if (data.status === "already_subscribed") setSubStatus("already");
         else setSubStatus("success");
@@ -285,7 +272,6 @@ export default function App() {
     return [...available].sort(() => 0.5 - Math.random()).slice(0, 8);
   }, [articles, mostCoveredArticles]);
 
-  // --- FIX: Now explicitly pulls the first ACTIVE/FILTERED article instead of the raw database first ---
   const latestArticle = filteredArticles[0] || null;
   const currentYear = new Date().getFullYear();
 
@@ -309,6 +295,7 @@ export default function App() {
           onAbout={() => navigate("/how")}
           onBlogs={() => navigate("/blogs")}
           onBooks={() => navigate("/books")}
+          onNewsroom={() => navigate("/newsroom")}
           onAdmin={() => navigate("/admin")} 
           onSubscribe={() => setShowSubPopup(true)} 
           onSearch={handleSearch} 
@@ -325,6 +312,8 @@ export default function App() {
         {authScreen === "login" ? <LoginScreen onLogin={saveSession} onBack={() => navigate("/")} />
         : authScreen === "blog" ? <BlogPage onBack={() => navigate("/")} />
         : authScreen === "book" ? <BookPage onBack={() => navigate("/")} />
+        : authScreen === "join" ? <JoinNewswire onBack={() => navigate("/")} /> // <-- NEW RENDER BLOCK
+        : authScreen === "newsroom" ? <NewsroomPage articles={articles} onBack={() => navigate("/")} onArticleClick={(a) => navigate(`/?article_id=${a.id}`)} /> 
         : authScreen === "rss" ? (
             loading ? (
               <div style={{ textAlign: "center", padding: "80px", fontFamily: "Georgia, serif", fontSize: "16px", color: "#5E574C" }}>

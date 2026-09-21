@@ -72,16 +72,6 @@ export default function BookPage({ onBack }) {
   return (
     <div style={{ minHeight: "100vh", backgroundColor: "#F3EEE3", fontFamily: "Arial, sans-serif", color: "#161412", padding: "40px 20px" }}>
       <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
-        
-        {/* Top Navigation Bar Removed. Only Back Button remains. */}
-        <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", marginBottom: "30px" }}>
-          <button onClick={onBack} style={{ padding: "8px 16px", backgroundColor: "transparent", color: "#161412", border: "1px solid #161412", fontSize: "12px", fontWeight: "bold", cursor: "pointer", borderRadius: "2px", transition: "all 0.2s" }}
-            onMouseOver={(e) => { e.target.style.backgroundColor = "#161412"; e.target.style.color = "#F3EEE3"; }}
-            onMouseOut={(e) => { e.target.style.backgroundColor = "transparent"; e.target.style.color = "#161412"; }}
-          >
-            ← BACK TO NEWS
-          </button>
-        </div>
 
         {loading ? (
           <p style={{ textAlign: "center", color: "#5E574C", fontFamily: "Georgia, serif", fontStyle: "italic", fontSize: "18px" }}>Loading library...</p>

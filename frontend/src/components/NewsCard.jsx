@@ -1,37 +1,47 @@
 import React, { useState } from "react";
 import { API_BASE_URL } from "../config";
 
-const localImages = [
-  "/images/news_1.jpg", "/images/news_2.jpg", "/images/news_3.jpg",
-  "/images/news_4.jpg", "/images/news_5.jpg", "/images/news_6.jpg", 
-  "/images/news_7.jpg", "/images/news_8.jpg", "/images/news_9.jpg", 
-  "/images/news_10.jpg", "/images/news_11.jpg", "/images/news_12.jpg", 
-  "/images/news_13.jpg", "/images/news_14.jpg", "/images/news_15.jpg",
+const PROF_NAMES = [
+  "Arion Vale", "Lyra Sen", "Kael Nore", "Elara Quinn", 
+  "Dorian Kade", "Mira Solen", "Orion Blake", "Seraphina Rowe"
 ];
+const getProfName = (id) => PROF_NAMES[(id || 1) - 1] || PROF_NAMES[0];
 
-// Helper to get a persistent image per article ID
-const getArticleImage = (article) => {
-  if (!article) return localImages[0];
-  const numericId = Number(article.id) || Math.abs(article.title?.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0)) || 1;
-  return localImages[numericId % localImages.length];
-};
-
-// Helper to format date strictly to Eastern Standard Time without the label
-const formatToEST = (dateString) => {
-  if (!dateString) return null;
+const getRelativeTime = (dateString) => {
+  if (!dateString) return "Just now";
   try {
     const date = new Date(dateString);
-    if (isNaN(date.getTime())) return dateString; // Return original if parsing fails
+    if (isNaN(date.getTime())) return dateString;
 
-    return new Intl.DateTimeFormat("en-US", {
-      timeZone: "EST", // Locked to EST specifically, skipping EDT shifts
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-      hour: "numeric",
-      minute: "2-digit"
-      // timeZoneName removed here to hide "EST"
-    }).format(date);
+    const now = new Date();
+    const diffInSeconds = Math.floor((now - date) / 1000);
+
+    if (diffInSeconds < 60) {
+      return "Just now";
+    }
+
+    const diffInMinutes = Math.floor(diffInSeconds / 60);
+    if (diffInMinutes < 60) {
+      return `${diffInMinutes} ${diffInMinutes === 1 ? "minute" : "minutes"} ago`;
+    }
+
+    const diffInHours = Math.floor(diffInMinutes / 60);
+    if (diffInHours < 24) {
+      return `${diffInHours} ${diffInHours === 1 ? "hour" : "hours"} ago`;
+    }
+
+    const diffInDays = Math.floor(diffInHours / 24);
+    if (diffInDays < 30) {
+      return `${diffInDays} ${diffInDays === 1 ? "day" : "days"} ago`;
+    }
+
+    const diffInMonths = Math.floor(diffInDays / 30);
+    if (diffInMonths < 12) {
+      return `${diffInMonths} ${diffInMonths === 1 ? "month" : "months"} ago`;
+    }
+
+    const diffInYears = Math.floor(diffInDays / 365);
+    return `${diffInYears} ${diffInYears === 1 ? "year" : "years"} ago`;
   } catch (e) {
     return dateString;
   }
@@ -45,7 +55,6 @@ export default function NewsCard({ article, index, onArticleClick }) {
 
   const [modal, setModal] = useState({ show: false, title: "", message: "" });
 
-  // Strictly cuts off at 50 words
   const getTruncatedSummary = (text) => {
     if (!text) return "Summary unavailable.";
     const words = text.split(/\s+/);
@@ -121,7 +130,8 @@ export default function NewsCard({ article, index, onArticleClick }) {
     }
   };
 
-  const articleImage = getArticleImage(article);
+  const profId = article?.professor_id || 1;
+  const articleImage = `/images/Proff_${profId}.png`;
 
   return (
     <article 
@@ -146,20 +156,21 @@ export default function NewsCard({ article, index, onArticleClick }) {
         </div>
       )}
 
-      {/* Persistent Article Image */}
-      <img className="news-image" src={articleImage} alt="" />
+      <img className="news-image" src={articleImage} alt={getProfName(profId)} />
 
       <div className="news-content">
         <div className="meta">
           <span className="category">{(article.category || "NEWS").toUpperCase()}</span>
           <span>{article.source || "NEWS DESK"}</span><i />
-          <span>{formatToEST(article.published) || "LATEST"}</span>
+          
+          <span style={{ color: "#C9A227", fontWeight: "bold" }}>{getProfName(profId).toUpperCase()}</span><i />
+          
+          <span>{getRelativeTime(article.published).toUpperCase()}</span>
         </div>
 
         <h2>{article.title || article.original_title}</h2>
         <div className="rule" />
         
-        {/* Render 50-word Truncated Summary */}
         <p>{getTruncatedSummary(article.summary)}</p>
 
         <div className="card-bottom" style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>

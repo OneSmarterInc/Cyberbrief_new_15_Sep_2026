@@ -6,9 +6,9 @@ export default function BlogPage({ onBack }) {
   const [loading, setLoading] = useState(true);
   const [selectedBlogId, setSelectedBlogId] = useState(null);
   
-  // NEW: Pagination State for the Sidebar
+  // Pagination State for the Sidebar
   const [currentPage, setCurrentPage] = useState(1);
-  const blogsPerPage = 5; // You can change how many blogs show in the sidebar per page
+  const blogsPerPage = 5;
 
   useEffect(() => {
     fetch(`${API_BASE_URL}/blogs/`)
@@ -30,19 +30,20 @@ export default function BlogPage({ onBack }) {
   const currentBlog = blogs.find(b => b.id === selectedBlogId) || blogs[0];
   const recentBlogs = blogs.filter(b => b.id !== currentBlog?.id);
 
-  // NEW: Pagination Logic
+  // Pagination Logic
   const indexOfLastBlog = currentPage * blogsPerPage;
   const indexOfFirstBlog = indexOfLastBlog - blogsPerPage;
   const currentSidebarBlogs = recentBlogs.slice(indexOfFirstBlog, indexOfLastBlog);
   const totalPages = Math.ceil(recentBlogs.length / blogsPerPage);
 
-  // HELPER: Resolves the image URL safely (Handles absolute, relative, AND Base64 strings)
-  const getImageUrl = (url) => {
-    if (!url) return null;
-    if (url.startsWith("http") || url.startsWith("data:image")) return url;
+  // HELPER: Resolves the image URL safely (Handles absolute, relative, and Base64 strings)
+  const getImageUrl = (blogObj) => {
+    const rawImg = blogObj?.image || blogObj?.image_data || blogObj?.image_url;
+    if (!rawImg) return null;
+    if (rawImg.startsWith("http") || rawImg.startsWith("data:image")) return rawImg;
     
     const base = API_BASE_URL.replace(/\/api\/?$/, ""); 
-    const cleanUrl = url.startsWith("/") ? url : `/${url}`;
+    const cleanUrl = rawImg.startsWith("/") ? rawImg : `/${rawImg}`;
     return `${base}${cleanUrl}`;
   };
 
@@ -55,19 +56,6 @@ export default function BlogPage({ onBack }) {
   return (
     <div style={{ minHeight: "100vh", backgroundColor: "#F3EEE3", fontFamily: "Arial, sans-serif", color: "#161412", padding: "40px 20px" }}>
       <div style={{ maxWidth: "1350px", margin: "0 auto" }}>
-        
-        {/* Top Navigation Bar */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "40px", borderBottom: "2px solid #161412", paddingBottom: "15px" }}>
-          <h2 style={{ fontFamily: "Georgia, serif", margin: 0, fontSize: "28px", fontWeight: "bold", letterSpacing: "0.5px", color: "#161412" }}>
-            Cyberbriefs // Editorials
-          </h2>
-          <button onClick={onBack} style={{ padding: "8px 16px", backgroundColor: "transparent", color: "#161412", border: "1px solid #161412", fontSize: "12px", fontWeight: "bold", cursor: "pointer", borderRadius: "2px", transition: "all 0.2s" }}
-            onMouseOver={(e) => { e.target.style.backgroundColor = "#161412"; e.target.style.color = "#F3EEE3"; }}
-            onMouseOut={(e) => { e.target.style.backgroundColor = "transparent"; e.target.style.color = "#161412"; }}
-          >
-            ← BACK TO NEWS
-          </button>
-        </div>
 
         {loading ? (
           <p style={{ textAlign: "center", color: "#5E574C", fontFamily: "Georgia, serif", fontStyle: "italic", fontSize: "18px" }}>Loading article...</p>
@@ -81,13 +69,13 @@ export default function BlogPage({ onBack }) {
             
             {/* Left Column: Main Article Detail View */}
             <div style={{ flex: "1", minWidth: "300px", maxWidth: "850px", backgroundColor: "#FDFBF7", padding: "40px", border: "1px solid #161412", borderTop: "4px solid #161412" }}>
-              {currentBlog.image_url && (
+              {getImageUrl(currentBlog) && (
                 <div style={{ marginBottom: "30px", backgroundColor: "#fff", padding: "5px", border: "1px solid #C9C1B0" }}>
                   <img 
-                    src={getImageUrl(currentBlog.image_url)} 
+                    src={getImageUrl(currentBlog)} 
                     alt={currentBlog.title} 
                     style={{ width: "100%", maxHeight: "550px", objectFit: "contain", display: "block", margin: "0 auto" }} 
-                    onError={(e) => { e.target.style.display = 'none'; }}
+                    onError={(e) => { e.target.parentElement.style.display = 'none'; }}
                   />
                 </div>
               )}
@@ -121,34 +109,38 @@ export default function BlogPage({ onBack }) {
               <div style={{ display: "flex", flexDirection: "column", gap: "25px" }}>
                 {currentSidebarBlogs.length === 0 ? (
                   <p style={{ fontSize: "14px", color: "#5E574C", fontStyle: "italic" }}>No other recent blogs.</p>
-                ) : currentSidebarBlogs.map(blog => (
-                  <div 
-                    key={blog.id} 
-                    onClick={() => handleBlogClick(blog.id)}
-                    style={{ display: "flex", gap: "15px", cursor: "pointer", alignItems: "flex-start", padding: "10px", backgroundColor: "#FDFBF7", border: "1px solid #EBE4D5", transition: "border 0.2s" }}
-                    onMouseOver={(e) => e.currentTarget.style.borderColor = "#161412"}
-                    onMouseOut={(e) => e.currentTarget.style.borderColor = "#EBE4D5"}
-                  >
-                    {blog.image_url ? (
-                      <img 
-                        src={getImageUrl(blog.image_url)} 
-                        alt={blog.title} 
-                        style={{ width: "80px", height: "80px", objectFit: "cover", border: "1px solid #C9C1B0", flexShrink: 0, backgroundColor: "#fff" }} 
-                        onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
-                      />
-                    ) : (
-                      <div style={{ width: "80px", height: "80px", backgroundColor: "#EBE4D5", border: "1px solid #C9C1B0", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "24px" }}>📄</div>
-                    )}
-                    <div style={{ display: "none", width: "80px", height: "80px", backgroundColor: "#EBE4D5", border: "1px solid #C9C1B0", flexShrink: 0, alignItems: "center", justifyContent: "center", fontSize: "24px" }}>📄</div>
-                    
-                    <div>
-                      <div style={{ fontSize: "11px", color: "#5E574C", marginBottom: "5px", fontWeight: "bold", textTransform: "uppercase" }}>{blog.created_at}</div>
-                      <div style={{ fontSize: "16px", color: "#161412", lineHeight: "1.4", fontWeight: "bold", fontFamily: "Georgia, serif" }}>
-                        {blog.title}
+                ) : currentSidebarBlogs.map(blog => {
+                  const thumbImg = getImageUrl(blog);
+                  return (
+                    <div 
+                      key={blog.id} 
+                      onClick={() => handleBlogClick(blog.id)}
+                      style={{ display: "flex", gap: "15px", cursor: "pointer", alignItems: "flex-start", padding: "10px", backgroundColor: "#FDFBF7", border: "1px solid #EBE4D5", transition: "border 0.2s" }}
+                      onMouseOver={(e) => e.currentTarget.style.borderColor = "#161412"}
+                      onMouseOut={(e) => e.currentTarget.style.borderColor = "#EBE4D5"}
+                    >
+                      {thumbImg ? (
+                        <img 
+                          src={thumbImg} 
+                          alt={blog.title} 
+                          style={{ width: "80px", height: "80px", objectFit: "cover", border: "1px solid #C9C1B0", flexShrink: 0, backgroundColor: "#fff" }} 
+                          onError={(e) => { 
+                            e.target.style.display = 'none'; 
+                            if (e.target.nextSibling) e.target.nextSibling.style.display = 'flex'; 
+                          }}
+                        />
+                      ) : null}
+                      <div style={{ display: thumbImg ? "none" : "flex", width: "80px", height: "80px", backgroundColor: "#EBE4D5", border: "1px solid #C9C1B0", flexShrink: 0, alignItems: "center", justifyContent: "center", fontSize: "24px" }}>📄</div>
+                      
+                      <div>
+                        <div style={{ fontSize: "11px", color: "#5E574C", marginBottom: "5px", fontWeight: "bold", textTransform: "uppercase" }}>{blog.created_at}</div>
+                        <div style={{ fontSize: "16px", color: "#161412", lineHeight: "1.4", fontWeight: "bold", fontFamily: "Georgia, serif" }}>
+                          {blog.title}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
               {/* PAGINATION CONTROLS */}

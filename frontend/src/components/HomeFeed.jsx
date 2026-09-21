@@ -161,6 +161,15 @@ export default function HomeFeed({
           .most-covered-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
           .clickable-card { text-decoration: none; color: inherit; display: flex; transition: opacity 0.2s; cursor: pointer; }
           .clickable-card:hover { opacity: 0.85; }
+          
+          .professors-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            max-width: 1000px;
+            margin: 0 auto 60px auto;
+          }
+
           @media (max-width: 1024px) {
             .layout-container { flex-direction: column; }
             .wire-sidebar { width: 100%; }
@@ -168,6 +177,9 @@ export default function HomeFeed({
           }
           @media (max-width: 768px) {
             .most-covered-grid { grid-template-columns: 1fr; }
+          }
+          @media (max-width: 600px) {
+            .professors-grid { grid-template-columns: 1fr; }
           }
         `}</style>
 
@@ -275,14 +287,14 @@ export default function HomeFeed({
         </div>
       </div>
 
-      <section style={{ padding: "80px 20px 80px 20px", backgroundColor: "#EBE4D5", borderTop: "1px solid #C9C1B0", marginTop: "40px" }}>
+      {/* FIXED: Removed marginTop and reduced top padding to remove the large gap */}
+      <section style={{ padding: "40px 20px 80px 20px", backgroundColor: "#EBE4D5", borderTop: "1px solid #C9C1B0", marginTop: "0px" }}>
         <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
           <h2 style={{ fontFamily: "Georgia, serif", color: "#161412", textAlign: "center", marginBottom: "50px", fontSize: "36px", fontWeight: "bold" }}>
             Meet the Newsroom
-
           </h2>
           
-          <div style={{ display: "flex", justifyContent: "center", gap: "30px", flexWrap: "wrap", marginBottom: "60px" }}>
+          <div className="professors-grid">
             {professors.map(profId => (
               <div 
                 key={profId}
@@ -290,23 +302,39 @@ export default function HomeFeed({
                 onMouseEnter={() => setHoveredProf(profId)}
                 onMouseLeave={() => setHoveredProf(null)}
                 style={{ 
-                  cursor: "pointer", textAlign: "center", transition: "all 0.3s ease",
-                  transform: hoveredProf === profId ? "scale(1.15)" : "scale(1)",
-                  opacity: hoveredProf && hoveredProf !== profId ? 0.5 : 1,
+                  cursor: "pointer", 
+                  display: "flex", 
+                  alignItems: "center", 
+                  gap: "20px",
+                  padding: "15px 20px",
+                  backgroundColor: "#F3EEE3", 
+                  border: "1px solid #161412",
+                  borderRadius: "4px",
+                  transition: "all 0.3s ease",
+                  transform: hoveredProf === profId ? "translateY(-3px)" : "translateY(0)",
+                  boxShadow: hoveredProf === profId ? "0 8px 15px rgba(0,0,0,0.05)" : "none",
+                  opacity: hoveredProf && hoveredProf !== profId ? 0.6 : 1,
                   filter: hoveredProf && hoveredProf !== profId ? "grayscale(80%)" : "none"
                 }}
               >
                 <img 
                   src={`/images/Proff_${profId}.png`} alt={getProfName(profId)} 
                   style={{ 
-                    width: "110px", height: "110px", borderRadius: "50%", objectFit: "cover", objectPosition: "top", 
-                    border: hoveredProf === profId ? "4px solid #C9A227" : "none",
-                    boxShadow: hoveredProf === profId ? "0 10px 20px rgba(0,0,0,0.2)" : "none",
-                    transition: "all 0.3s ease"
+                    width: "70px", height: "70px",
+                    objectFit: "cover", objectPosition: "top", 
+                    borderRadius: "4px", 
+                    border: hoveredProf === profId ? "2px solid #C9A227" : "1px solid #161412",
+                    transition: "all 0.3s ease",
+                    flexShrink: 0
                   }} 
                 />
-                <div style={{ marginTop: "15px", fontSize: "13px", fontWeight: "bold", color: "#161412", letterSpacing: "1px", textTransform: "uppercase" }}>
-                  {getProfName(profId)}
+                <div>
+                  <div style={{ fontSize: "16px", fontWeight: "bold", color: "#161412", letterSpacing: "1px", textTransform: "uppercase", marginBottom: "4px" }}>
+                    {getProfName(profId)}
+                  </div>
+                  <div style={{ fontSize: "13px", color: "#8F7118", fontWeight: "bold" }}>
+                    Staff Editor
+                  </div>
                 </div>
               </div>
             ))}
@@ -315,7 +343,7 @@ export default function HomeFeed({
           {/* Golden Line */}
           <div style={{ height: "2px", backgroundColor: "#D9CBA0", width: "100%", marginBottom: "40px" }}></div>
 
-          {/* Volunteer Banner - Light Theme & Adjusted Footer Spacing */}
+          {/* Volunteer Banner */}
           <div 
             onClick={() => {
               window.history.pushState({}, "", "/join");

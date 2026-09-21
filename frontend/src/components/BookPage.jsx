@@ -73,11 +73,8 @@ export default function BookPage({ onBack }) {
     <div style={{ minHeight: "100vh", backgroundColor: "#F3EEE3", fontFamily: "Arial, sans-serif", color: "#161412", padding: "40px 20px" }}>
       <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
         
-        {/* Top Navigation Bar */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "40px", borderBottom: "2px solid #161412", paddingBottom: "15px" }}>
-          <h2 style={{ fontFamily: "Georgia, serif", margin: 0, fontSize: "28px", fontWeight: "bold", letterSpacing: "0.5px", color: "#161412" }}>
-            {selectedBook ? "Library // Book Details" : "Library & Reading"}
-          </h2>
+        {/* Top Navigation Bar Removed. Only Back Button remains. */}
+        <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", marginBottom: "30px" }}>
           <button onClick={onBack} style={{ padding: "8px 16px", backgroundColor: "transparent", color: "#161412", border: "1px solid #161412", fontSize: "12px", fontWeight: "bold", cursor: "pointer", borderRadius: "2px", transition: "all 0.2s" }}
             onMouseOver={(e) => { e.target.style.backgroundColor = "#161412"; e.target.style.color = "#F3EEE3"; }}
             onMouseOut={(e) => { e.target.style.backgroundColor = "transparent"; e.target.style.color = "#161412"; }}
@@ -163,51 +160,54 @@ export default function BookPage({ onBack }) {
         ) : (
 
           /* =========================================
-             REFINED GRID VIEW (Editorial Cards)
+             REFINED GRID VIEW (Wide Cards with Increased Height)
              ========================================= */
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: "40px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "35px" }}>
             {books.map(book => (
               <div key={book.id} style={{ 
                 display: "flex", 
-                flexDirection: "column", 
+                flexDirection: "row", 
                 backgroundColor: "#FDFBF7", 
                 border: "1px solid #161412", 
-                padding: "20px",
+                padding: "25px",
+                gap: "25px",
+                minHeight: "280px",
                 position: "relative"
               }}>
                 
-                {/* Image Container with editorial matte border */}
-                <div style={{ border: "1px solid #EBE4D5", padding: "5px", backgroundColor: "#fff", marginBottom: "20px" }}>
+                {/* Left Side: Thumbnail Image with proper vertical alignment */}
+                <div style={{ flex: "0 0 150px", border: "1px solid #EBE4D5", padding: "5px", backgroundColor: "#fff", height: "fit-content" }}>
                   {book.image_url ? (
                     <img 
                       src={getImageUrl(book.image_url)} 
                       alt={book.title} 
-                      style={{ width: "100%", height: "300px", objectFit: "contain", display: "block" }} 
+                      style={{ width: "100%", height: "200px", objectFit: "cover", display: "block" }} 
                     />
                   ) : (
-                    <div style={{ width: "100%", height: "300px", backgroundColor: "#EBE4D5", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      <span style={{ color: "#5E574C", fontSize: "40px" }}>📚</span>
+                    <div style={{ width: "100%", height: "200px", backgroundColor: "#EBE4D5", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <span style={{ color: "#5E574C", fontSize: "30px" }}>📚</span>
                     </div>
                   )}
                 </div>
                 
+                {/* Right Side: Title, Description, and Action Button */}
                 <div style={{ display: "flex", flexDirection: "column", flex: "1" }}>
                   
                   {/* Card Title - Serif */}
-                  <h3 style={{ fontFamily: "Georgia, serif", fontSize: "20px", margin: "0 0 12px 0", color: "#161412", lineHeight: "1.3" }}>
+                  <h3 style={{ fontFamily: "Georgia, serif", fontSize: "19px", margin: "0 0 10px 0", color: "#161412", lineHeight: "1.3" }}>
                     {book.title}
                   </h3>
                   
-                  {/* Grid Summary - Faded bottom */}
-                  <div style={{ flex: "1", overflow: "hidden", maxHeight: "100px", marginBottom: "25px", position: "relative" }}>
+                  {/* Grid Summary with increased room */}
+                  <div style={{ flex: "1", overflow: "hidden", maxHeight: "115px", marginBottom: "20px", position: "relative" }}>
                     <div 
                       dangerouslySetInnerHTML={{ __html: book.description }} 
-                      style={{ fontSize: "14px", color: "#444", lineHeight: "1.6", fontFamily: "Georgia, serif" }} 
+                      style={{ fontSize: "13.5px", color: "#444", lineHeight: "1.6", fontFamily: "Georgia, serif" }} 
                     />
-                    <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "40px", backgroundImage: "linear-gradient(to bottom, rgba(253,251,247,0), rgba(253,251,247,1))" }} />
+                    <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "35px", backgroundImage: "linear-gradient(to bottom, rgba(253,251,247,0), rgba(253,251,247,1))" }} />
                   </div>
                   
-                  {/* Ghost Button */}
+                  {/* Read Details Button */}
                   <div style={{ marginTop: "auto", borderTop: "1px solid #EBE4D5", paddingTop: "15px" }}>
                     <button 
                       onClick={() => handleBookClick(book)}

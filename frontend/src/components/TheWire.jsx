@@ -70,14 +70,14 @@ export default function TheWire({ articles, selectedCategory = "All", onArticleC
                 className="wire-clickable"
                 style={{ gap: "15px", paddingBottom: "20px", marginBottom: "20px", borderBottom: "1px solid rgba(243, 238, 227, 0.1)" }}
               >
-                {/* Left Column: Professor Name instead of Time */}
+                {/* Left Column: Professor Name (Normal size) */}
                 <div style={{ color: "#C9C1B0", fontSize: "13px", width: "85px", flexShrink: 0, marginTop: "2px", fontWeight: "bold" }}>
                   {getProfName(article.professor_id)}
                 </div>
                 
-                {/* Right Column: Headline and Source */}
+                {/* Right Column: Smaller Headline, Normal Meta/Source */}
                 <div style={{ flex: 1 }}>
-                  <h4 style={{ margin: "0 0 8px 0", fontSize: "16px", lineHeight: "1.4", color: "#F3EEE3", fontWeight: "bold" }}>
+                  <h4 style={{ margin: "0 0 6px 0", fontSize: "13.5px", lineHeight: "1.35", color: "#F3EEE3", fontWeight: "bold" }}>
                     {article.ai_headline || article.title}
                   </h4>
                   <div style={{ fontSize: "13px", color: "#C9C1B0" }}>

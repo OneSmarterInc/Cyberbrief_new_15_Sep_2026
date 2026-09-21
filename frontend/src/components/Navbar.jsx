@@ -1,13 +1,11 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { API_BASE_URL } from "../config";
 
-// Helper to format time strictly to Eastern Standard Time without the label
 const formatToEST = (dateString) => {
   if (!dateString) return null;
   try {
     const date = new Date(dateString);
     if (isNaN(date.getTime())) {
-      // Fallback for non-standard RSS dates (extract just the time part if possible)
       const timeMatch = dateString.match(/\d{1,2}:\d{2}(:\d{2})?/);
       return timeMatch ? timeMatch[0] : "Latest"; 
     }
@@ -22,6 +20,13 @@ const formatToEST = (dateString) => {
   }
 };
 
+const formatTimeSeconds = (secs) => {
+  if (isNaN(secs) || secs === 0) return "0:00";
+  const mins = Math.floor(secs / 60);
+  const remainingSecs = Math.floor(secs % 60);
+  return `${mins}:${remainingSecs < 10 ? "0" : ""}${remainingSecs}`;
+};
+
 export default function Navbar({ 
   selectedCategory, setSelectedCategory, user, onSignin, 
   onHome, onRss, onAbout, onBlogs, onBooks, onAdmin, onSubscribe, 
@@ -31,14 +36,13 @@ export default function Navbar({
   const [speaking, setSpeaking] = useState(false);
   const [isBuffering, setIsBuffering] = useState(false); 
   const [progress, setProgress] = useState(0); 
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
   const [search, setSearch] = useState("");
   const [now, setNow] = useState(new Date());
   
-  // Copy States
   const [embedCopied, setEmbedCopied] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
-
-  // Left Side Drawer State
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   useEffect(() => {
@@ -77,6 +81,7 @@ export default function Navbar({
       setSpeaking(false);
       setIsBuffering(false);
       setProgress(0);
+      setCurrentTime(0);
       return;
     }
 
@@ -84,7 +89,6 @@ export default function Navbar({
     const audioUrl = `${API_BASE_URL}/audio/?text=${encodeURIComponent(textToSpeak)}`;
   
     setIsBuffering(true);
-  
     window.audioPlayer = new Audio(audioUrl);
   
     window.audioPlayer.onplay = () => { 
@@ -92,18 +96,28 @@ export default function Navbar({
       setSpeaking(true); 
       setProgress(0); 
     };
+
+    window.audioPlayer.onloadedmetadata = () => {
+      if (window.audioPlayer.duration) {
+        setDuration(window.audioPlayer.duration);
+      }
+    };
   
     window.audioPlayer.ontimeupdate = () => {
       if (window.audioPlayer.duration) {
-        const currentProgress = (window.audioPlayer.currentTime / window.audioPlayer.duration) * 100;
-        setProgress(currentProgress);
+        const dur = window.audioPlayer.duration;
+        const cur = window.audioPlayer.currentTime;
+        setCurrentTime(cur);
+        setDuration(dur);
+        setProgress((cur / dur) * 100);
       }
     };
   
     window.audioPlayer.onended = () => { 
       setSpeaking(false); 
       setProgress(100); 
-      setTimeout(() => setProgress(0), 1000); 
+      setCurrentTime(duration);
+      setTimeout(() => { setProgress(0); setCurrentTime(0); }, 1000); 
     };
 
     window.audioPlayer.onerror = () => {
@@ -203,19 +217,22 @@ export default function Navbar({
         .aggregate-briefing-link-wrapper { text-decoration: none; color: inherit; display: block; transition: opacity 0.2s; cursor: pointer; }
         .aggregate-briefing-link-wrapper:hover { opacity: 0.75; }
   
-        .aggregate-player-container { display: flex; flex-direction: column; gap: 10px; width: 100%; }
-        .aggregate-player { border: 1px solid #161412; padding: 10px 15px; display: flex; align-items: center; gap: 12px; background: #F3EEE3; min-height: 54px; }
-        .aggregate-play { width: 38px; height: 38px; border-radius: 50%; border: 0; background: #161412; color: #F3EEE3; display: flex; align-items: center; justify-content: center; cursor: pointer; flex: none; font-size: 16px; }
+        /* DECREASED WIDTH OF SOUND BOX & SEARCH BOX */
+        .aggregate-player-container { display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 580px; }
+        
+        .aggregate-player { border: 1px solid #161412; padding: 6px 14px; display: flex; align-items: center; gap: 14px; background: #F3EEE3; min-height: 44px; width: 100%; }
+        .aggregate-play { width: 30px; height: 30px; border-radius: 50%; border: 0; background: #161412; color: #F3EEE3; display: flex; align-items: center; justify-content: center; cursor: pointer; flex: none; font-size: 12px; }
         .aggregate-play.active, .aggregate-play:hover { background: #8F7118; }
   
         @keyframes spin { 100% { transform: rotate(360deg); } }
-        .buffering-icon { display: inline-block; animation: spin 2s linear infinite; font-size: 14px; }
+        .buffering-icon { display: inline-block; animation: spin 2s linear infinite; font-size: 12px; }
 
-        .aggregate-player-main { flex: 1; min-width: 0; }
-        .aggregate-progress { height: 6px; background: #C9C1B0; position: relative; border-radius: 3px; overflow: hidden; }
+        .aggregate-player-main { flex: 1; min-width: 0; display: flex; align-items: center; gap: 14px; }
+        .aggregate-progress { flex: 1; height: 4px; background: #C9C1B0; position: relative; border-radius: 2px; overflow: hidden; }
         .aggregate-progress-fill { height: 100%; background: #161412; }
 
-        .action-buttons-row { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+        /* INCREASED SPACE BETWEEN ACTION BUTTONS */
+        .action-buttons-row { display: flex; gap: 16px; margin-top: 8px; flex-wrap: wrap; }
         .action-btn { border: 1px solid #C9A227; background: transparent; color: #5E574C; padding: 6px 14px; font-size: 11px; font-weight: bold; letter-spacing: 1px; cursor: pointer; transition: all 0.2s ease; white-space: nowrap; }
         .action-btn:hover { background: #C9A227; color: #161412; }
 
@@ -263,6 +280,7 @@ export default function Navbar({
         <a className="drawer-link" onClick={(e) => handleNavClick(e, "/how", onAbout)}>About the desk</a>
         <a className="drawer-link" onClick={(e) => handleNavClick(e, "/blogs", onBlogs)}>Blogs</a>
         <a className="drawer-link" onClick={(e) => handleNavClick(e, "/books", onBooks)}>Books</a>
+        <a className="drawer-link" onClick={(e) => handleNavClick(e, "/join", null)}>Careers</a>
         
         <div style={{ marginTop: "auto", paddingTop: "20px" }}>
           <button 
@@ -321,6 +339,7 @@ export default function Navbar({
               >
                 {isBuffering ? <span className="buffering-icon">⏳</span> : speaking ? "■" : "▶"}
               </button>
+              
               <div className="aggregate-player-main">
                 <div className="aggregate-progress">
                   <div 
@@ -331,21 +350,26 @@ export default function Navbar({
                     }} 
                   />
                 </div>
+                {/* Timer format: 0:00 / 0:00 matching reference image */}
+                <div style={{ fontSize: "12px", color: "#5E574C", fontWeight: "bold", whiteSpace: "nowrap", fontFamily: "Arial, sans-serif" }}>
+                  {formatTimeSeconds(currentTime)} / {duration ? formatTimeSeconds(duration) : "0:00"}
+                </div>
               </div>
             </div>
 
-            <form onSubmit={submitSearch} style={{ display: "flex", height: "34px", width: "100%" }}>
+            {/* SEARCH BOX WITH CONTROLLED WIDTH MATCHING SOUND BOX */}
+            <form onSubmit={submitSearch} style={{ display: "flex", height: "36px", width: "100%" }}>
               <input 
                 type="search" 
                 value={search} 
                 onChange={(e) => setSearch(e.target.value)} 
                 placeholder="Search stories..." 
                 aria-label="Search stories"
-                style={{ flex: 1, border: "1px solid #C9C1B0", borderRight: "none", background: "#F3EEE3", color: "#161412", padding: "0 12px", fontSize: "13px", outline: "none", minWidth: 0 }}
+                style={{ flex: 1, border: "1px solid #C9C1B0", borderRight: "none", background: "#F3EEE3", color: "#161412", padding: "0 14px", fontSize: "13px", outline: "none" }}
               />
               <button 
                 type="submit"
-                style={{ backgroundColor: "#161412", color: "#F3EEE3", border: "none", padding: "0 15px", fontWeight: "bold", cursor: "pointer", fontSize: "12px", transition: "background 0.2s" }}
+                style={{ backgroundColor: "#161412", color: "#F3EEE3", border: "none", padding: "0 18px", fontWeight: "bold", cursor: "pointer", fontSize: "12px", transition: "background 0.2s" }}
                 onMouseOver={(e) => e.target.style.backgroundColor = "#8F7118"}
                 onMouseOut={(e) => e.target.style.backgroundColor = "#161412"}
               >

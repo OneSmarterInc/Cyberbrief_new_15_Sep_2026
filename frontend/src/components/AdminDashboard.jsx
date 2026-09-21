@@ -2,6 +2,8 @@ import React, { useState, useMemo, useEffect } from "react";
 import { API_BASE_URL } from "../config";
 import BlogManagement from "./BlogManagement";
 import BookManagement from "./BookManagement"; 
+import VolunteerManagement from "./VolunteerManagement"; // <-- IMPORT
+import PositionManagement from "./PositionManagement"; // <-- IMPORT
 
 export default function AdminDashboard({ user, articles, token, onRefresh, onBack, onLogout }) {
   const [view, setView] = useState(() => sessionStorage.getItem("newsai_admin_view") || "overview");
@@ -332,6 +334,10 @@ export default function AdminDashboard({ user, articles, token, onRefresh, onBac
             <li onClick={() => setView("queries")} style={{ padding: "12px 0", borderBottom: "1px solid #333", color: view === "queries" ? "#C9A227" : "#F3EEE3", fontWeight: view === "queries" ? "bold" : "normal", cursor: "pointer", display: "flex", justifyContent: "space-between" }}>
               Reader Queries {queries.filter(q => !q.is_resolved).length > 0 && <span style={{ backgroundColor: "#C9A227", color: "#161412", padding: "2px 6px", borderRadius: "10px", fontSize: "11px" }}>{queries.filter(q => !q.is_resolved).length}</span>}
             </li>
+            
+            <li onClick={() => setView("positions")} style={{ padding: "12px 0", borderBottom: "1px solid #333", color: view === "positions" ? "#C9A227" : "#F3EEE3", fontWeight: view === "positions" ? "bold" : "normal", cursor: "pointer" }}>Careers & Positions</li>
+            <li onClick={() => setView("volunteers")} style={{ padding: "12px 0", borderBottom: "1px solid #333", color: view === "volunteers" ? "#C9A227" : "#F3EEE3", fontWeight: view === "volunteers" ? "bold" : "normal", cursor: "pointer" }}>Volunteer Applications</li>
+            
             <li onClick={() => setView("subscribers")} style={{ padding: "12px 0", borderBottom: "1px solid #333", color: view === "subscribers" ? "#C9A227" : "#F3EEE3", fontWeight: view === "subscribers" ? "bold" : "normal", cursor: "pointer" }}>Subscribers</li>
             <li onClick={() => setView("feeds")} style={{ padding: "12px 0", borderBottom: "1px solid #333", color: view === "feeds" ? "#C9A227" : "#F3EEE3", fontWeight: view === "feeds" ? "bold" : "normal", cursor: "pointer" }}>RSS Feeds</li>
             
@@ -371,6 +377,11 @@ export default function AdminDashboard({ user, articles, token, onRefresh, onBac
             </div>
           </>
         )}
+
+        {view === "volunteers" && <VolunteerManagement authToken={authToken} />}
+        {view === "positions" && <PositionManagement authToken={authToken} />}
+
+        {/* --- EXISITING VIEWS PRESERVED --- */}
 
         {view === "manage" && (
           <>

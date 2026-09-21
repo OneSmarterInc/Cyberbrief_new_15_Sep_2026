@@ -353,7 +353,6 @@ export default function Navbar({
               </button>
             </form>
 
-            {/* Action Buttons Row */}
             <div className="action-buttons-row">
               <button 
                 type="button" 

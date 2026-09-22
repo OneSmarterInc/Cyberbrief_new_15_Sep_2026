@@ -4,7 +4,32 @@ const PROF_NAMES = [
   "Arion Vale", "Lyra Sen", "Kael Nore", "Elara Quinn", 
   "Dorian Kade", "Mira Solen", "Orion Blake", "Seraphina Rowe"
 ];
+
+const PROF_POSITIONS = [
+  "Security Operations (SOC)",
+  "Vulnerability & Application Security",
+  "Threat Intelligence & Research",
+  "Malware & Ransomware Security",
+  "Identity & Data Security",
+  "Network & Infrastructure Security",
+  "Cloud & Supply Chain Security",
+  "Privacy & Compliance"
+];
+
+const PROF_DESCRIPTIONS = [
+  "A specialized look into real-time threat detection, incident response workflows, SIEM analytics, and security operations center readiness.",
+  "Deep dives into zero-day vulnerabilities, application security flaws, code injection vectors, and enterprise patch management strategies.",
+  "Tracking advanced persistent threat (APT) groups, threat actor tracking, dark web intelligence disclosures, and indicator telemetry.",
+  "Analyzing emerging ransomware strains, infostealers, Trojans, rootkits, and reverse-engineering malicious payloads.",
+  "Focusing on identity and access management (IAM), privileged access controls, zero-trust architectures, and data breach prevention.",
+  "Investigating network intrusions, DDoS mitigations, infrastructure hardening, and critical OT/ICS security measures.",
+  "Examining multi-cloud security posture, container and Kubernetes vulnerabilities, and software supply chain risks.",
+  "Covering privacy regulations, compliance frameworks (GDPR, HIPAA, NIST), and social engineering vectors."
+];
+
 const getProfName = (id) => PROF_NAMES[(id || 1) - 1] || PROF_NAMES[0];
+const getProfPosition = (id) => PROF_POSITIONS[(id || 1) - 1] || PROF_POSITIONS[0];
+const getProfDescription = (id) => PROF_DESCRIPTIONS[(id || 1) - 1] || PROF_DESCRIPTIONS[0];
 
 const formatToEST = (dateString) => {
   if (!dateString) return "Recent";
@@ -50,7 +75,7 @@ export default function NewsroomPage({ articles, onBack, onArticleClick }) {
           
           <div style={{ marginTop: "35px" }}>
             <div style={{ display: "inline-block", border: "1px solid #C9A227", color: "#C9A227", padding: "4px 10px", fontSize: "12px", fontWeight: "bold", letterSpacing: "1.5px", marginBottom: "20px", textTransform: "uppercase" }}>
-              Cybersecurity Desk
+              {getProfPosition(profId)}
             </div>
             
             <h1 style={{ fontFamily: "Georgia, serif", fontSize: "48px", color: "#161412", margin: "0 0 15px 0", lineHeight: "1.1", letterSpacing: "-1px" }}>
@@ -58,11 +83,11 @@ export default function NewsroomPage({ articles, onBack, onArticleClick }) {
             </h1>
             
             <p style={{ fontFamily: "Georgia, serif", fontStyle: "italic", fontSize: "22px", color: "#5E574C", margin: "0 0 25px 0", lineHeight: "1.5" }}>
-              A curated look into emerging cyber threats, vulnerability assessments, and automated threat hunting. Reviewing all intelligence currently assigned to this desk.
+              {getProfDescription(profId)}
             </p>
             
             <div style={{ fontSize: "11px", fontWeight: "bold", color: "#8F7118", letterSpacing: "1px", textTransform: "uppercase" }}>
-              BY {getProfName(profId).toUpperCase()}, STAFF EDITOR
+              BY {getProfName(profId).toUpperCase()}, {getProfPosition(profId).toUpperCase()} LEAD
             </div>
           </div>
         </div>
@@ -81,7 +106,6 @@ export default function NewsroomPage({ articles, onBack, onArticleClick }) {
                 onClick={() => onArticleClick(article)}
                 style={{ display: "flex", gap: "25px", textDecoration: "none", color: "inherit", paddingBottom: "35px", borderBottom: "1px solid #EBE4D5", cursor: "pointer", flexDirection: window.innerWidth < 768 ? "column" : "row" }}
               >
-                {/* RESTORED TO PROFF IMAGE AND ADDED objectPosition: 'top' TO FIX CROPPING */}
                 <img 
                   src={`/images/Proff_${profId}.png`} 
                   alt={getProfName(profId)} 

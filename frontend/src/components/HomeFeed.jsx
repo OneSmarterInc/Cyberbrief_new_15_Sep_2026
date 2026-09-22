@@ -6,7 +6,21 @@ const PROF_NAMES = [
   "Arion Vale", "Lyra Sen", "Kael Nore", "Elara Quinn", 
   "Dorian Kade", "Mira Solen", "Orion Blake", "Seraphina Rowe"
 ];
+
+// Mapping the 8 positions to match the backend keyword logic
+const PROF_POSITIONS = [
+  "Security Operations (SOC)",
+  "Vulnerability & Application Security",
+  "Threat Intelligence & Research",
+  "Malware & Ransomware Security",
+  "Identity & Data Security",
+  "Network & Infrastructure Security",
+  "Cloud & Supply Chain Security",
+  "Privacy & Compliance"
+];
+
 const getProfName = (id) => PROF_NAMES[(id || 1) - 1] || PROF_NAMES[0];
+const getProfPosition = (id) => PROF_POSITIONS[(id || 1) - 1] || PROF_POSITIONS[0];
 
 const getArticleImage = (article) => {
   if (!article) return "/images/Proff_1.png";
@@ -164,12 +178,15 @@ export default function HomeFeed({
           
           .professors-grid {
             display: grid;
-            grid-template-columns: repeat(2, 1fr);
+            grid-template-columns: repeat(4, 1fr);
             gap: 20px;
-            max-width: 1000px;
+            max-width: 1400px;
             margin: 0 auto 60px auto;
           }
 
+          @media (max-width: 1200px) {
+            .professors-grid { grid-template-columns: repeat(2, 1fr); }
+          }
           @media (max-width: 1024px) {
             .layout-container { flex-direction: column; }
             .wire-sidebar { width: 100%; }
@@ -287,9 +304,8 @@ export default function HomeFeed({
         </div>
       </div>
 
-      {/* FIXED: Removed marginTop and reduced top padding to remove the large gap */}
       <section style={{ padding: "40px 20px 80px 20px", backgroundColor: "#EBE4D5", borderTop: "1px solid #C9C1B0", marginTop: "0px" }}>
-        <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
+        <div style={{ maxWidth: "1450px", margin: "0 auto" }}>
           <h2 style={{ fontFamily: "Georgia, serif", color: "#161412", textAlign: "center", marginBottom: "50px", fontSize: "36px", fontWeight: "bold" }}>
             Meet the Newsroom
           </h2>
@@ -305,8 +321,8 @@ export default function HomeFeed({
                   cursor: "pointer", 
                   display: "flex", 
                   alignItems: "center", 
-                  gap: "20px",
-                  padding: "15px 20px",
+                  gap: "15px",
+                  padding: "15px",
                   backgroundColor: "#F3EEE3", 
                   border: "1px solid #161412",
                   borderRadius: "4px",
@@ -320,7 +336,7 @@ export default function HomeFeed({
                 <img 
                   src={`/images/Proff_${profId}.png`} alt={getProfName(profId)} 
                   style={{ 
-                    width: "70px", height: "70px",
+                    width: "60px", height: "60px",
                     objectFit: "cover", objectPosition: "top", 
                     borderRadius: "4px", 
                     border: hoveredProf === profId ? "2px solid #C9A227" : "1px solid #161412",
@@ -328,12 +344,12 @@ export default function HomeFeed({
                     flexShrink: 0
                   }} 
                 />
-                <div>
-                  <div style={{ fontSize: "16px", fontWeight: "bold", color: "#161412", letterSpacing: "1px", textTransform: "uppercase", marginBottom: "4px" }}>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: "14px", fontWeight: "bold", color: "#161412", letterSpacing: "0.5px", textTransform: "uppercase", marginBottom: "3px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                     {getProfName(profId)}
                   </div>
-                  <div style={{ fontSize: "13px", color: "#8F7118", fontWeight: "bold" }}>
-                    Staff Editor
+                  <div style={{ fontSize: "11px", color: "#8F7118", fontWeight: "bold", lineHeight: "1.2" }}>
+                    {getProfPosition(profId)}
                   </div>
                 </div>
               </div>

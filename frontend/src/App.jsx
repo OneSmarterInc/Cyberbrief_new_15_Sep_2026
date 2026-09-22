@@ -13,7 +13,7 @@ import BlogPage from "./components/BlogPage";
 import BookPage from "./components/BookPage"; 
 import RssFeedPage from "./components/RssFeedPage";
 import NewsroomPage from "./components/NewsroomPage"; 
-import JoinNewswire from "./components/JoinNewswire"; // <-- IMPORTED HERE
+import JoinNewswire from "./components/JoinNewswire";
 
 const TOKEN_KEY = "newsai_token";
 const USER_KEY = "newsai_user";
@@ -96,7 +96,7 @@ export default function App() {
         setAuthScreen("rss");
       } else if (path === "/newsroom") { 
         setAuthScreen("newsroom");
-      } else if (path === "/join") { // <-- ROUTE ADDED HERE
+      } else if (path === "/join") { 
         setAuthScreen("join");
       } else if (path === "/how") {
         setAuthScreen("about");
@@ -182,12 +182,10 @@ export default function App() {
   }, [token]);
 
   useEffect(() => {
-    if (!authScreen || authScreen === "admin" || authScreen === "rss" || authScreen === "newsroom") {
-      fetchNews(); 
-      const intervalId = setInterval(() => { fetchNews(false); }, 1800000); 
-      return () => clearInterval(intervalId); 
-    }
-  }, [authScreen, fetchNews]);
+    fetchNews(); 
+    const intervalId = setInterval(() => { fetchNews(false); }, 1800000); 
+    return () => clearInterval(intervalId); 
+  }, [fetchNews]);
 
   useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search);
@@ -282,6 +280,13 @@ export default function App() {
     if (screen === "cookies") navigate("/cookies");
   };
 
+  // Compute total active global articles to prevent navbar count dropping to 0 on subpages like Blog/Books
+  const globalActiveCount = useMemo(() => articles.filter(a => a.is_active !== false).length, [articles]);
+  const activeSourcesCount = useMemo(() => {
+    if (totalSources > 0) return totalSources;
+    return new Set(articles.map(a => a.source)).size;
+  }, [articles, totalSources]);
+
   return (
     <div className="app" style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
       {authScreen !== "admin" && (
@@ -303,8 +308,8 @@ export default function App() {
           latestSummary={latestArticle?.summary || ""}
           latestPublished={latestArticle?.published || ""}
           latestId={latestArticle?.id}
-          totalStories={filteredArticles.length} 
-          totalSources={totalSources} 
+          totalStories={globalActiveCount} 
+          totalSources={activeSourcesCount} 
         />
       )}
 
@@ -312,7 +317,7 @@ export default function App() {
         {authScreen === "login" ? <LoginScreen onLogin={saveSession} onBack={() => navigate("/")} />
         : authScreen === "blog" ? <BlogPage onBack={() => navigate("/")} />
         : authScreen === "book" ? <BookPage onBack={() => navigate("/")} />
-        : authScreen === "join" ? <JoinNewswire onBack={() => navigate("/")} /> // <-- NEW RENDER BLOCK
+        : authScreen === "join" ? <JoinNewswire onBack={() => navigate("/")} />
         : authScreen === "newsroom" ? <NewsroomPage articles={articles} onBack={() => navigate("/")} onArticleClick={(a) => navigate(`/?article_id=${a.id}`)} /> 
         : authScreen === "rss" ? (
             loading ? (

@@ -47,6 +47,19 @@ export default function BlogPage({ onBack }) {
     return `${base}${cleanUrl}`;
   };
 
+  // HELPER: Formats date to MM-DD-YYYY
+  const formatDate = (dateString) => {
+    if (!dateString) return "";
+    const d = new Date(dateString);
+    if (isNaN(d.getTime())) return dateString; // Fallback if invalid format
+    
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    const year = d.getFullYear();
+    
+    return `${month}-${day}-${year}`;
+  };
+
   const handleBlogClick = (id) => {
     setSelectedBlogId(id);
     setCurrentPage(1); // Reset sidebar pagination when viewing a new blog
@@ -81,7 +94,7 @@ export default function BlogPage({ onBack }) {
               )}
 
               <div style={{ fontSize: "12px", color: "#5E574C", marginBottom: "15px", fontWeight: "bold", textTransform: "uppercase", letterSpacing: "1px" }}>
-                Posted: {currentBlog.created_at}
+                Posted: {formatDate(currentBlog.created_at)}
               </div>
 
               {/* Theme-matched Headline */}
@@ -90,7 +103,7 @@ export default function BlogPage({ onBack }) {
               </h1>
 
               <div style={{ fontSize: "14px", color: "#5E574C", fontStyle: "italic", marginBottom: "35px", borderBottom: "1px solid #EBE4D5", paddingBottom: "20px" }}>
-                Cyberbriefs Research Desk | Authored {currentBlog.created_at}
+                Cyberbriefs Research Desk | Authored {formatDate(currentBlog.created_at)}
               </div>
 
               {/* Formatted HTML Description */}
@@ -133,7 +146,7 @@ export default function BlogPage({ onBack }) {
                       <div style={{ display: thumbImg ? "none" : "flex", width: "80px", height: "80px", backgroundColor: "#EBE4D5", border: "1px solid #C9C1B0", flexShrink: 0, alignItems: "center", justifyContent: "center", fontSize: "24px" }}>📄</div>
                       
                       <div>
-                        <div style={{ fontSize: "11px", color: "#5E574C", marginBottom: "5px", fontWeight: "bold", textTransform: "uppercase" }}>{blog.created_at}</div>
+                        <div style={{ fontSize: "11px", color: "#5E574C", marginBottom: "5px", fontWeight: "bold", textTransform: "uppercase" }}>{formatDate(blog.created_at)}</div>
                         <div style={{ fontSize: "16px", color: "#161412", lineHeight: "1.4", fontWeight: "bold", fontFamily: "Georgia, serif" }}>
                           {blog.title}
                         </div>

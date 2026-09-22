@@ -82,7 +82,7 @@ export default function Footer({ setAuthScreen }) {
         
         <div>
           <h3 style={{ fontFamily: "Georgia, serif", margin: "0 0 5px 0", fontSize: "20px", color: "#F3EEE3" }}>Cyberbriefs</h3>
-          <p style={{ fontSize: "12px", color: "#C9C1B0", margin: 0 }}>© {currentYear} The Aggregate Desk. All rights reserved.</p>
+          <p style={{ fontSize: "12px", color: "#C9C1B0", margin: 0 }}>© {currentYear} The Cyberbriefs Desk. All rights reserved.</p>
         </div>
 
         <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>

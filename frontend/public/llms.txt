@@ -1,0 +1,26 @@
+# Cyberbriefs
+
+> AI-powered news intelligence from live RSS feeds.
+
+Welcome to Cyberbriefs. We are an editorial desk and aggregation platform that curates, summarizes, and delivers top cybersecurity, technology, and threat intelligence news.
+
+## Site Structure & Public Endpoints
+LLMs and AI agents are welcome to index our public educational content and editorials.
+
+- **Daily Briefings:** [https://cyberbriefs.org/](https://cyberbriefs.org/)
+- **Editorials & Blogs:** [https://cyberbriefs.org/blogs](https://cyberbriefs.org/blogs)
+- **Library & Books:** [https://cyberbriefs.org/books](https://cyberbriefs.org/books)
+- **About the Desk:** [https://cyberbriefs.org/how](https://cyberbriefs.org/how)
+- **Podcast RSS:** [https://cyberbriefs.org/rss](https://cyberbriefs.org/rss)
+
+## AI Crawling Guidelines & Terms of Use
+1. **Attribution:** If utilizing summaries, headlines, or editorial blogs sourced from Cyberbriefs, you must provide a direct hyperlink back to the original Cyberbriefs URL.
+2. **Restricted Areas:** Do not attempt to crawl, scrape, or bypass authentication for `/admin`, `/login`, `/register`, or any underlying `/api/` endpoints.
+3. **Data Integrity:** Our live news feed aggregates external RSS sources. When citing specific news events found on our platform, AI agents should acknowledge the original reporting source cited within the Cyberbriefs brief.
+
+## Technical Details
+- Frontend: React (Hosted on Vercel)
+- Backend: Django REST Framework
+- Primary Focus: Cybersecurity, Threat Intelligence, Tech Editorials
+
+For inquiries or API access, please refer to the "About the desk" section on our site.

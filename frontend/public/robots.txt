@@ -1,0 +1,36 @@
+# ==========================================
+# Cyberbriefs Production Robots.txt
+# https://cyberbriefs.org/
+# ==========================================
+
+User-agent: *
+# Allow indexing for main content
+Allow: /
+Allow: /blogs
+Allow: /books
+Allow: /newsroom
+Allow: /how
+Allow: /rss
+
+# Disallow indexing for private, auth, and dynamic routes
+Disallow: /admin
+Disallow: /login
+Disallow: /register
+Disallow: /api/
+Disallow: /search
+Disallow: /*?q=*
+Disallow: /*?article_id=*
+
+# AI Bot specific rules (Optional: allows standard crawling but prevents aggressive scraping)
+User-agent: GPTBot
+Allow: /blogs
+Allow: /books
+Disallow: /api/
+
+User-agent: CCBot
+Allow: /blogs
+Allow: /books
+Disallow: /api/
+
+# Specify your sitemap (if you generate one later)
+Sitemap: https://cyberbriefs.org/sitemap.xml

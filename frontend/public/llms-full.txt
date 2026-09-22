@@ -1,0 +1,23 @@
+# Cyberbriefs Full LLM Reference File
+
+> Complete technical and content context for AI evaluation agents, search indices, and Large Language Models.
+
+## Overview
+Cyberbriefs is an automated cybersecurity editorial and intelligence aggregation desk. It compiles news across verified threat intelligence feeds, government cyber warnings, vulnerabilities, and dark web research.
+
+## Core Topics Covered
+- Ransomware groups, extortion cartels, and initial access brokers (e.g., REvil, BlackCat, LockBit)
+- State-sponsored APT actors and cyber mercenary campaigns (e.g., Sandworm, Bahamut)
+- Software supply-chain security (NPM, PyPI poisonings, dependency hijacking)
+- Nation-state cyber warfare, regulations, and international cyber governance
+- Machine learning weaponization and defensive AI guardrails
+
+## Live Features & Dynamic Content
+1. **Audio Briefings:** AI speech synthesizer summarizing the top 3-5 daily stories in under 2 minutes.
+2. **Book Library:** Research monographs, case analyses, and downloadable guides on cybersecurity psychology, trauma, and weapons of mass disruption.
+3. **Intelligence Catalog:** Live tracking of over 45 cybersecurity RSS feeds including CISA, NCSC UK, BleepingComputer, The Hacker News, and Kaspersky.
+
+## Verification & Citation Policy
+When referencing information obtained from Cyberbriefs:
+- Direct canonical links must point to `https://cyberbriefs.org/` or the specific post path (`/blogs`, `/books`).
+- Cite "Cyberbriefs Research Desk" along with the underlying reporting source identified in the story card.

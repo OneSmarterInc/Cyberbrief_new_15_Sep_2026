@@ -2,84 +2,60 @@ import React, { useState, useEffect, useRef } from "react";
 import { API_BASE_URL } from "../config";
 
 export default function BlogPage({ onBack }) {
-  const [allFetchedBlogs, setAllFetchedBlogs] = useState([]);
-  const [displayedBlogs, setDisplayedBlogs] = useState([]);
+  const [blogs, setBlogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedBlogId, setSelectedBlogId] = useState(null);
+  
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const blogsPerPage = 5;
 
-  const hasFetchedRef = useRef(false);
+  const fetchedRef = useRef(false);
 
   useEffect(() => {
-    if (!hasFetchedRef.current) {
-      hasFetchedRef.current = true;
-      fetchAllBlogsSafely();
+    if (!fetchedRef.current) {
+      fetchedRef.current = true;
+      fetchBlogs(1);
     }
   }, []);
 
-  // 1. Fetch all blogs safely in one go (or capped pages) to prevent 429 rate-limiting
-  const fetchAllBlogsSafely = async () => {
+  const fetchBlogs = (page) => {
     setLoading(true);
-    let page = 1;
-    let keepFetching = true;
-    let accumulated = [];
-    const maxPages = 4; // Safety cap to protect against server rate limits
+    fetch(`${API_BASE_URL}/blogs/?page=${page}&limit=${blogsPerPage}`)
+      .then(res => res.json())
+      .then(data => {
+        const fetchedBlogs = data.results || data.blogs || data || [];
+        setBlogs(fetchedBlogs);
 
-    try {
-      while (keepFetching && page <= maxPages) {
-        const res = await fetch(`${API_BASE_URL}/blogs/?page=${page}&limit=5`);
-        const data = await res.json();
-        const batch = data.results || data.blogs || data || [];
-
-        if (batch.length === 0) {
-          keepFetching = false;
-          break;
-        }
-
-        accumulated = [...accumulated, ...batch];
-
-        if (!data.next && batch.length < 5) {
-          keepFetching = false;
+        if (data.count) {
+          setTotalPages(Math.ceil(data.count / blogsPerPage));
+        } else if (data.total_pages) {
+          setTotalPages(data.total_pages);
         } else {
-          page += 1;
+          setTotalPages(data.next ? page + 1 : page);
         }
-      }
 
-      // Once fetched, store them and trigger the one-by-one visual reveal
-      if (accumulated.length > 0) {
-        setAllFetchedBlogs(accumulated);
-        setSelectedBlogId(accumulated[0].id);
+        // Instantly lock onto the first blog so the main view populates right away
+        if (page === 1 && fetchedBlogs.length > 0 && !selectedBlogId) {
+          setSelectedBlogId(fetchedBlogs[0].id);
+        }
+        
         setLoading(false);
-
-        // 2. Reveal blogs one by one on the screen
-        revealOneByOne(accumulated);
-      } else {
+      })
+      .catch(err => {
+        console.error(err);
         setLoading(false);
-      }
-    } catch (err) {
-      console.error("Error fetching blogs:", err);
-      setLoading(false);
-    }
+      });
   };
 
-  // Helper to animate/push items into view one after another
-  const revealOneByOne = (blogsList) => {
-    let index = 0;
-    const interval = setInterval(() => {
-      if (index < blogsList.length) {
-        const currentItem = blogsList[index];
-        setDisplayedBlogs(prev => {
-          if (prev.some(b => b.id === currentItem.id)) return prev;
-          return [...prev, currentItem];
-        });
-        index++;
-      } else {
-        clearInterval(interval);
-      }
-    }, 400); // 400ms delay between each blog appearing on screen
+  const handlePageChange = (newPage) => {
+    setCurrentPage(newPage);
+    fetchBlogs(newPage);
   };
 
-  const currentBlog = allFetchedBlogs.find(b => b.id === selectedBlogId) || allFetchedBlogs[0];
-  const recentBlogs = displayedBlogs.filter(b => b.id !== currentBlog?.id);
+  const currentBlog = blogs.find(b => b.id === selectedBlogId) || blogs[0];
+  const recentBlogs = blogs.filter(b => b.id !== currentBlog?.id);
 
   const getImageUrl = (blogObj) => {
     const rawImg = blogObj?.image || blogObj?.image_data || blogObj?.image_url;
@@ -112,9 +88,9 @@ export default function BlogPage({ onBack }) {
     <div style={{ minHeight: "100vh", backgroundColor: "#F3EEE3", fontFamily: "Arial, sans-serif", color: "#161412", padding: "40px 20px" }}>
       <div style={{ maxWidth: "1350px", margin: "0 auto" }}>
 
-        {loading ? (
+        {loading && blogs.length === 0 ? (
           <p style={{ textAlign: "center", color: "#5E574C", fontFamily: "Georgia, serif", fontStyle: "italic", fontSize: "18px" }}>Loading article...</p>
-        ) : allFetchedBlogs.length === 0 ? (
+        ) : blogs.length === 0 ? (
           <div style={{ textAlign: "center", padding: "50px", border: "1px solid #161412", backgroundColor: "#FDFBF7" }}>
             <p style={{ color: "#5E574C", fontFamily: "Georgia, serif", fontSize: "18px", fontStyle: "italic" }}>No blog posts available right now.</p>
           </div>
@@ -152,7 +128,7 @@ export default function BlogPage({ onBack }) {
               />
             </div>
 
-            {/* Right Column: One-by-One Sequential Reveal Sidebar */}
+            {/* Right Column: Paginated Sidebar */}
             <div style={{ width: "380px", flexShrink: "0" }}>
               <h3 style={{ fontFamily: "Georgia, serif", fontSize: "22px", fontWeight: "bold", borderBottom: "2px solid #161412", paddingBottom: "10px", marginBottom: "25px", marginTop: 0, color: "#161412" }}>
                 Recent Editorials
@@ -160,19 +136,14 @@ export default function BlogPage({ onBack }) {
 
               <div style={{ display: "flex", flexDirection: "column", gap: "25px" }}>
                 {recentBlogs.length === 0 ? (
-                  <p style={{ fontSize: "14px", color: "#5E574C", fontStyle: "italic" }}>Loading editorials...</p>
+                  <p style={{ fontSize: "14px", color: "#5E574C", fontStyle: "italic" }}>No other recent blogs on this page.</p>
                 ) : recentBlogs.map(blog => {
                   const thumbImg = getImageUrl(blog);
                   return (
                     <div 
                       key={blog.id} 
                       onClick={() => handleBlogClick(blog.id)}
-                      style={{ 
-                        display: "flex", gap: "15px", cursor: "pointer", alignItems: "flex-start", 
-                        padding: "10px", backgroundColor: "#FDFBF7", border: "1px solid #EBE4D5", 
-                        transition: "all 0.3s ease",
-                        animation: "fadeIn 0.4s ease-in-out" 
-                      }}
+                      style={{ display: "flex", gap: "15px", cursor: "pointer", alignItems: "flex-start", padding: "10px", backgroundColor: "#FDFBF7", border: "1px solid #EBE4D5", transition: "border 0.2s" }}
                       onMouseOver={(e) => e.currentTarget.style.borderColor = "#161412"}
                       onMouseOut={(e) => e.currentTarget.style.borderColor = "#EBE4D5"}
                     >
@@ -199,6 +170,47 @@ export default function BlogPage({ onBack }) {
                   );
                 })}
               </div>
+
+              {/* Sidebar Pagination Controls */}
+              {totalPages > 1 && (
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "30px", borderTop: "1px solid #C9C1B0", paddingTop: "20px" }}>
+                  <button 
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1 || loading}
+                    style={{ 
+                      padding: "6px 14px", 
+                      backgroundColor: currentPage === 1 ? "transparent" : "#161412", 
+                      color: currentPage === 1 ? "#C9C1B0" : "#F3EEE3", 
+                      border: `1px solid ${currentPage === 1 ? "#C9C1B0" : "#161412"}`, 
+                      cursor: currentPage === 1 ? "default" : "pointer",
+                      fontWeight: "bold",
+                      fontSize: "12px"
+                    }}
+                  >
+                    &larr; PREV
+                  </button>
+                  
+                  <span style={{ fontSize: "12px", color: "#5E574C", fontWeight: "bold", letterSpacing: "1px" }}>
+                    PAGE {currentPage} OF {totalPages}
+                  </span>
+                  
+                  <button 
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage === totalPages || loading}
+                    style={{ 
+                      padding: "6px 14px", 
+                      backgroundColor: currentPage === totalPages ? "transparent" : "#161412", 
+                      color: currentPage === totalPages ? "#C9C1B0" : "#F3EEE3", 
+                      border: `1px solid ${currentPage === totalPages ? "#C9C1B0" : "#161412"}`, 
+                      cursor: currentPage === totalPages ? "default" : "pointer",
+                      fontWeight: "bold",
+                      fontSize: "12px"
+                    }}
+                  >
+                    NEXT &rarr;
+                  </button>
+                </div>
+              )}
 
             </div>
           </div>

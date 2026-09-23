@@ -31,12 +31,14 @@ export default function RssFeedPage({ articles, onBack }) {
   const [dbSources, setDbSources] = useState([]);
 
   useEffect(() => {
-    fetch(`${API_BASE_URL}/admin/feeds/`, { credentials: "include" })
+    // Fetch all feeds from database
+    fetch(`${API_BASE_URL}/admin/feeds/?limit=500`, { credentials: "include" })
       .then(res => res.json())
       .then(data => {
-        if (data.feeds) {
-          const activeNames = data.feeds.filter(f => f.is_active !== false).map(f => f.name);
-          setDbSources(activeNames);
+        const feedList = data.results || data.feeds || data || [];
+        if (Array.isArray(feedList)) {
+          const allNames = feedList.map(f => f.name || f.title || f);
+          setDbSources(allNames);
         }
       })
       .catch(err => console.error("Failed to fetch RSS feeds", err));
@@ -57,16 +59,33 @@ export default function RssFeedPage({ articles, onBack }) {
     return articles.find(a => String(a.id) === String(selectedArticleId)) || null;
   }, [articles, selectedArticleId]);
 
+  // Combine database sources and article sources, counting news volume, and sorting highest stories first
   const uniqueSources = useMemo(() => {
-    const articleSources = articles.filter(a => a.is_active !== false && a.source).map(a => a.source);
-    return Array.from(new Set([...dbSources, ...articleSources])).sort();
+    const sourceCounts = {};
+    articles.forEach(a => {
+      if (a.source) {
+        sourceCounts[a.source] = (sourceCounts[a.source] || 0) + 1;
+      }
+    });
+
+    const allSourceNames = Array.from(new Set([...dbSources, ...articles.map(a => a.source).filter(Boolean)]));
+
+    // Sort descending by article count (sources with the highest stories first)
+    return allSourceNames.sort((a, b) => {
+      const countA = sourceCounts[a] || 0;
+      const countB = sourceCounts[b] || 0;
+      if (countB !== countA) {
+        return countB - countA; // Higher story count comes first
+      }
+      return a.localeCompare(b); // Alphabetical fallback if counts match
+    });
   }, [dbSources, articles]);
 
   const sourceArticles = useMemo(() => {
     if (!selectedSource) return [];
     
     return articles.filter(a => {
-      if (a.is_active === false || a.source !== selectedSource) return false;
+      if (a.source !== selectedSource) return false;
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
         return (
@@ -119,7 +138,7 @@ export default function RssFeedPage({ articles, onBack }) {
               ? "Article Details" 
               : selectedSource 
                 ? "Source Feed" 
-                : "Our Intelligence Sources"}
+                : `Our Intelligence Sources (${uniqueSources.length})`}
           </h2>
           <button 
             onClick={handleBack} 
@@ -232,7 +251,7 @@ export default function RssFeedPage({ articles, onBack }) {
         ) : !selectedSource ? (
           uniqueSources.length === 0 ? (
             <div style={{ textAlign: "center", padding: "50px", backgroundColor: "#F3EEE3", border: "1px solid #161412", borderRadius: "8px" }}>
-              <p style={{ color: "#5E574C", fontSize: "18px" }}>No RSS sources currently active.</p>
+              <p style={{ color: "#5E574C", fontSize: "18px" }}>No RSS sources currently found.</p>
             </div>
           ) : (
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(350px, 1fr))", gap: "40px" }}>
@@ -247,7 +266,7 @@ export default function RssFeedPage({ articles, onBack }) {
                       backgroundColor: "#F3EEE3", 
                       border: "1px solid #161412",
                       borderRadius: "10px", 
-                      padding: "50px 30px", 
+                      padding: "40px 30px", 
                       display: "flex", 
                       flexDirection: "column", 
                       alignItems: "center", 
@@ -270,16 +289,16 @@ export default function RssFeedPage({ articles, onBack }) {
                       src={sourceImage} 
                       alt={source}
                       style={{ 
-                        width: "130px", 
-                        height: "130px", 
+                        width: "120px", 
+                        height: "120px", 
                         borderRadius: "50%", 
                         objectFit: "cover",
-                        marginBottom: "25px",
+                        marginBottom: "20px",
                         border: "2px solid #161412",
                         backgroundColor: "#EBE4D5" 
                       }}
                     />
-                    <h3 style={{ margin: 0, fontSize: "24px", fontFamily: "Georgia, serif", fontWeight: "bold", color: "#161412", lineHeight: "1.3" }}>
+                    <h3 style={{ margin: 0, fontSize: "22px", fontFamily: "Georgia, serif", fontWeight: "bold", color: "#161412", lineHeight: "1.3" }}>
                       {source}
                     </h3>
                   </div>

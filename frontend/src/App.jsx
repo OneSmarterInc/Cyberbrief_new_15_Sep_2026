@@ -231,17 +231,20 @@ export default function App() {
   };
 
   const filteredArticles = useMemo(() => {
-    let activeArticles = articles.filter(a => a.is_active !== false); 
+    // Added safety check (a &&) to prevent undefined crashes
+    let activeArticles = articles.filter(a => a && a.is_active !== false); 
     if (selectedCategory !== "All") {
-      activeArticles = activeArticles.filter((article) => (article.category || "").toLowerCase() === selectedCategory.toLowerCase());
+      activeArticles = activeArticles.filter((article) => (article?.category || "").toLowerCase() === selectedCategory.toLowerCase());
     }
     if (searchQuery) {
       const lowerQ = searchQuery.toLowerCase();
       activeArticles = activeArticles.filter((article) => 
-        (article.title || "").toLowerCase().includes(lowerQ) || 
-        (article.ai_headline || "").toLowerCase().includes(lowerQ) || 
-        (article.summary || "").toLowerCase().includes(lowerQ) || 
-        (article.source || "").toLowerCase().includes(lowerQ)
+        article && (
+          (article.title || "").toLowerCase().includes(lowerQ) || 
+          (article.ai_headline || "").toLowerCase().includes(lowerQ) || 
+          (article.summary || "").toLowerCase().includes(lowerQ) || 
+          (article.source || "").toLowerCase().includes(lowerQ)
+        )
       );
     }
     return activeArticles;
@@ -251,7 +254,8 @@ export default function App() {
   const currentArticles = filteredArticles.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
   
   const mostCoveredArticles = useMemo(() => {
-    const active = articles.filter(a => a.is_active !== false);
+    // Added safety check (a &&)
+    const active = articles.filter(a => a && a.is_active !== false);
     let morning = active.filter(a => {
       if (!a.published) return false;
       const hours = new Date(a.published).getHours();
@@ -265,7 +269,8 @@ export default function App() {
   }, [articles]);
 
   const inBriefArticles = useMemo(() => {
-    const active = articles.filter(a => a.is_active !== false);
+    // Added safety check (a &&)
+    const active = articles.filter(a => a && a.is_active !== false);
     const available = active.filter(a => !mostCoveredArticles.includes(a));
     return [...available].sort(() => 0.5 - Math.random()).slice(0, 8);
   }, [articles, mostCoveredArticles]);
@@ -280,11 +285,11 @@ export default function App() {
     if (screen === "cookies") navigate("/cookies");
   };
 
-  // Compute total active global articles to prevent navbar count dropping to 0 on subpages like Blog/Books
-  const globalActiveCount = useMemo(() => articles.filter(a => a.is_active !== false).length, [articles]);
+  // Added safety check (a &&)
+  const globalActiveCount = useMemo(() => articles.filter(a => a && a.is_active !== false).length, [articles]);
   const activeSourcesCount = useMemo(() => {
     if (totalSources > 0) return totalSources;
-    return new Set(articles.map(a => a.source)).size;
+    return new Set(articles.filter(a => a).map(a => a.source)).size;
   }, [articles, totalSources]);
 
   return (

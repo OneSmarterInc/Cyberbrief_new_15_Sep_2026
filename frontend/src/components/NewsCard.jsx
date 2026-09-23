@@ -7,6 +7,17 @@ const PROF_NAMES = [
 ];
 const getProfName = (id) => PROF_NAMES[(id || 1) - 1] || PROF_NAMES[0];
 
+const STAFF_VOICE_PROFILES = {
+  1: { gender: "male", pitch: 0.85, rate: 0.95, voiceOffset: 0 },
+  2: { gender: "female", pitch: 1.15, rate: 1.05, voiceOffset: 1 },
+  3: { gender: "male", pitch: 0.70, rate: 0.90, voiceOffset: 2 },
+  4: { gender: "female", pitch: 1.25, rate: 1.00, voiceOffset: 3 },
+  5: { gender: "male", pitch: 0.95, rate: 1.00, voiceOffset: 4 },
+  6: { gender: "female", pitch: 1.05, rate: 0.95, voiceOffset: 2 },
+  7: { gender: "male", pitch: 0.80, rate: 1.05, voiceOffset: 1 },
+  8: { gender: "female", pitch: 1.20, rate: 0.90, voiceOffset: 0 }
+};
+
 const getRelativeTime = (dateString) => {
   if (!dateString) return "Just now";
   try {
@@ -16,30 +27,15 @@ const getRelativeTime = (dateString) => {
     const now = new Date();
     const diffInSeconds = Math.floor((now - date) / 1000);
 
-    if (diffInSeconds < 60) {
-      return "Just now";
-    }
-
+    if (diffInSeconds < 60) return "Just now";
     const diffInMinutes = Math.floor(diffInSeconds / 60);
-    if (diffInMinutes < 60) {
-      return `${diffInMinutes} ${diffInMinutes === 1 ? "minute" : "minutes"} ago`;
-    }
-
+    if (diffInMinutes < 60) return `${diffInMinutes} ${diffInMinutes === 1 ? "minute" : "minutes"} ago`;
     const diffInHours = Math.floor(diffInMinutes / 60);
-    if (diffInHours < 24) {
-      return `${diffInHours} ${diffInHours === 1 ? "hour" : "hours"} ago`;
-    }
-
+    if (diffInHours < 24) return `${diffInHours} ${diffInHours === 1 ? "hour" : "hours"} ago`;
     const diffInDays = Math.floor(diffInHours / 24);
-    if (diffInDays < 30) {
-      return `${diffInDays} ${diffInDays === 1 ? "day" : "days"} ago`;
-    }
-
+    if (diffInDays < 30) return `${diffInDays} ${diffInDays === 1 ? "day" : "days"} ago`;
     const diffInMonths = Math.floor(diffInDays / 30);
-    if (diffInMonths < 12) {
-      return `${diffInMonths} ${diffInMonths === 1 ? "month" : "months"} ago`;
-    }
-
+    if (diffInMonths < 12) return `${diffInMonths} ${diffInMonths === 1 ? "month" : "months"} ago`;
     const diffInYears = Math.floor(diffInDays / 365);
     return `${diffInYears} ${diffInYears === 1 ? "year" : "years"} ago`;
   } catch (e) {
@@ -55,6 +51,10 @@ export default function NewsCard({ article, index, onArticleClick }) {
 
   const [modal, setModal] = useState({ show: false, title: "", message: "" });
 
+  // 1. Optional chaining applied here
+  const profId = article?.professor_id || 1;
+  const articleImage = `/images/Proff_${profId}.png`;
+
   const getTruncatedSummary = (text) => {
     if (!text) return "Summary unavailable.";
     const words = text.split(/\s+/);
@@ -65,35 +65,56 @@ export default function NewsCard({ article, index, onArticleClick }) {
   };
 
   const handleListen = () => {
+    if (!('speechSynthesis' in window)) {
+      setModal({ show: true, title: "Not Supported", message: "Text-to-speech is not supported by your browser." });
+      return;
+    }
+
     if (speaking) {
-      window.audioPlayer?.pause();
+      window.speechSynthesis.cancel();
       setSpeaking(false);
       return;
     }
-    if (window.audioPlayer) {
-      window.audioPlayer.pause();
+
+    window.speechSynthesis.cancel();
+
+    // 2. Optional chaining applied to text parsing
+    const textToSpeak = `${article?.ai_headline || article?.title || ""}. ${article?.summary || ""}`;
+    const utterance = new SpeechSynthesisUtterance(textToSpeak);
+
+    const profile = STAFF_VOICE_PROFILES[profId] || STAFF_VOICE_PROFILES[1];
+    utterance.pitch = profile.pitch;
+    utterance.rate = profile.rate;
+
+    const voices = window.speechSynthesis.getVoices();
+    if (voices.length > 0) {
+      const englishVoices = voices.filter(v => v.lang.startsWith("en"));
+      
+      const genderFilteredVoices = englishVoices.filter(v => {
+        const name = v.name.toLowerCase();
+        if (profile.gender === "female") {
+          return name.includes("female") || name.includes("zira") || name.includes("samantha") || name.includes("karen") || name.includes("victoria") || name.includes("moira") || name.includes("hazel") || name.includes("susan");
+        } else {
+          return name.includes("male") || name.includes("david") || name.includes("mark") || name.includes("george") || name.includes("daniel") || name.includes("oliver") || name.includes("james") || name.includes("ryan");
+        }
+      });
+
+      const pool = genderFilteredVoices.length > 0 ? genderFilteredVoices : englishVoices;
+      if (pool.length > 0) {
+        const selectedIndex = (profile.voiceOffset + (profId * 2)) % pool.length;
+        utterance.voice = pool[selectedIndex];
+      }
     }
 
-    const textToSpeak = article.summary || article.title || "Summary unavailable.";
-    const audioUrl = `${API_BASE_URL}/audio/?text=${encodeURIComponent(textToSpeak)}`;
-    window.audioPlayer = new Audio(audioUrl);
-    
-    window.audioPlayer.onplay = () => setSpeaking(true);
-    window.audioPlayer.onended = () => setSpeaking(false);
-    window.audioPlayer.onerror = () => setSpeaking(false);
+    utterance.onstart = () => setSpeaking(true);
+    utterance.onend = () => setSpeaking(false);
+    utterance.onerror = () => setSpeaking(false);
 
-    window.audioPlayer.addEventListener("pause", () => {
-      setSpeaking(false);
-    });
-
-    window.audioPlayer.play().catch(err => {
-      console.error("Failed to play audio:", err);
-      setSpeaking(false);
-    });
+    window.speechSynthesis.speak(utterance);
   };
 
   const handleOpenExternal = () => {
-    if (article.link) window.open(article.link, "_blank", "noopener,noreferrer");
+    if (article?.link) window.open(article.link, "_blank", "noopener,noreferrer");
   };
 
   const handleCardClick = () => {
@@ -105,7 +126,7 @@ export default function NewsCard({ article, index, onArticleClick }) {
   };
 
   const submitQuery = async () => {
-    if (!queryText.trim()) return;
+    if (!queryText.trim() || !article?.id) return;
     setSubmitStatus("loading");
     try {
       const res = await fetch(`${API_BASE_URL}/news/${article.id}/query/`, {
@@ -129,9 +150,6 @@ export default function NewsCard({ article, index, onArticleClick }) {
       setModal({ show: true, title: "Network Error", message: "Could not connect to the server." });
     }
   };
-
-  const profId = article?.professor_id || 1;
-  const articleImage = `/images/Proff_${profId}.png`;
 
   return (
     <article 
@@ -160,25 +178,26 @@ export default function NewsCard({ article, index, onArticleClick }) {
 
       <div className="news-content">
         <div className="meta">
-          <span className="category">{(article.category || "NEWS").toUpperCase()}</span>
-          <span>{article.source || "NEWS DESK"}</span><i />
+          {/* 3. Optional chaining on rendering properties */}
+          <span className="category">{(article?.category || "NEWS").toUpperCase()}</span>
+          <span>{article?.source || "NEWS DESK"}</span><i />
           
           <span style={{ color: "#C9A227", fontWeight: "bold" }}>{getProfName(profId).toUpperCase()}</span><i />
           
-          <span>{getRelativeTime(article.published).toUpperCase()}</span>
+          <span>{getRelativeTime(article?.published).toUpperCase()}</span>
         </div>
 
-        <h2>{article.title || article.original_title}</h2>
+        <h2>{article?.title || article?.original_title || "Untitled Article"}</h2>
         <div className="rule" />
         
-        <p>{getTruncatedSummary(article.summary)}</p>
+        <p>{getTruncatedSummary(article?.summary)}</p>
 
         <div className="card-bottom" style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
           <button 
             className={`listen ${speaking ? "active" : ""}`} 
             onClick={(e) => { e.stopPropagation(); handleListen(); }}
           >
-            <span>{speaking ? "■" : "▶"}</span> {speaking ? "STOP READING" : "LISTEN"}
+            <span>{speaking ? "■" : "▶"}</span> {speaking ? "STOP READING" : `LISTEN (${getProfName(profId).split(" ")[0]})`}
           </button>
           
           <button 

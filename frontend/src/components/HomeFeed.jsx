@@ -65,6 +65,7 @@ export default function HomeFeed({
   const [modal, setModal] = useState({ show: false, title: "", message: "", type: "alert", onConfirm: null });
   const [selectedArticle, setSelectedArticle] = useState(null);
   const [speaking, setSpeaking] = useState(false);
+  const [speakingCardId, setSpeakingCardId] = useState(null);
   const [hoveredProf, setHoveredProf] = useState(null);
   const professors = [1, 2, 3, 4, 5, 6, 7, 8];
 
@@ -72,7 +73,6 @@ export default function HomeFeed({
   const [queryText, setQueryText] = useState("");
   const [submitStatus, setSubmitStatus] = useState(null);
 
-  // PRE-WARM VOICES BUG FIX
   useEffect(() => {
     if (typeof window !== "undefined" && 'speechSynthesis' in window) {
       const loadVoices = () => window.speechSynthesis.getVoices();
@@ -115,9 +115,10 @@ export default function HomeFeed({
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
-    if (speaking && 'speechSynthesis' in window) {
+    if ((speaking || speakingCardId) && 'speechSynthesis' in window) {
       window.speechSynthesis.cancel();
       setSpeaking(false);
+      setSpeakingCardId(null);
     }
   }, [selectedArticle]);
 
@@ -127,9 +128,10 @@ export default function HomeFeed({
   };
 
   const handleCloseArticle = () => {
-    if (speaking && 'speechSynthesis' in window) {
+    if ((speaking || speakingCardId) && 'speechSynthesis' in window) {
       window.speechSynthesis.cancel();
       setSpeaking(false);
+      setSpeakingCardId(null);
     }
     setSelectedArticle(null);
     const url = new URL(window.location);
@@ -166,6 +168,52 @@ export default function HomeFeed({
       setSubmitStatus(null);
       setModal({ show: true, title: "Network Error", message: "Could not connect to the server." });
     }
+  };
+
+  const handleCardListen = (e, article) => {
+    e.stopPropagation();
+
+    if (!('speechSynthesis' in window)) return;
+
+    if (speakingCardId === article.id) {
+      window.speechSynthesis.cancel();
+      setSpeakingCardId(null);
+      return;
+    }
+
+    window.speechSynthesis.cancel();
+
+    const profId = parseInt(article.professor_id) || 1;
+    const textToSpeak = `${article?.ai_headline || article?.title || ""}. ${article?.summary || ""}`;
+    const utterance = new SpeechSynthesisUtterance(textToSpeak);
+
+    const profile = STAFF_VOICE_PROFILES[profId] || STAFF_VOICE_PROFILES[1];
+    utterance.pitch = profile.pitch;
+    utterance.rate = profile.rate;
+
+    const voices = window.speechSynthesis.getVoices();
+    if (voices.length > 0) {
+      const englishVoices = voices.filter(v => v.lang.startsWith("en"));
+      let genderFilteredVoices = englishVoices.filter(v => {
+        const name = v.name.toLowerCase();
+        if (profile.gender === "female") {
+          return name.includes("female") || /zira|samantha|karen|victoria|moira|susan|hazel|amelia|olivia/i.test(name);
+        } else {
+          return name.includes("male") || /david|mark|george|daniel|oliver|james|ryan|arthur/i.test(name);
+        }
+      });
+
+      let pool = genderFilteredVoices.length > 0 ? genderFilteredVoices : englishVoices;
+      if (pool.length > 0) {
+        utterance.voice = pool[profile.voiceOffset % pool.length];
+      }
+    }
+
+    utterance.onstart = () => setSpeakingCardId(article.id);
+    utterance.onend = () => setSpeakingCardId(null);
+    utterance.onerror = () => setSpeakingCardId(null);
+
+    window.speechSynthesis.speak(utterance);
   };
 
   const handleListen = () => {
@@ -441,9 +489,32 @@ export default function HomeFeed({
                                 <span style={{ position: "absolute", bottom: "10px", left: "10px", color: "#F3EEE3", fontSize: "11px", fontWeight: "bold", textShadow: "0px 2px 4px rgba(0,0,0,0.8)" }}>Generated illustration</span>
                               </div>
 
-                              <span style={{ color: "#C9A227", fontSize: "13px", fontWeight: "bold", marginBottom: "8px" }}>
-                                {article.category || "News"} • {getProfName(article.professor_id).toUpperCase()}
-                              </span>
+                              {/* Discover More Card Meta with Black-bordered sound button */}
+                              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "8px" }}>
+                                <span style={{ color: "#C9A227", fontSize: "13px", fontWeight: "bold" }}>
+                                  {article.category || "News"} • {getProfName(article.professor_id).toUpperCase()}
+                                </span>
+                                <button 
+                                  onClick={(e) => handleCardListen(e, article)}
+                                  title={speakingCardId === article.id ? "Stop reading" : "Listen"}
+                                  style={{ 
+                                    background: speakingCardId === article.id ? "#161412" : "transparent", 
+                                    border: "1px solid #161412", 
+                                    borderRadius: "3px", 
+                                    padding: "2px 6px", 
+                                    cursor: "pointer", 
+                                    color: speakingCardId === article.id ? "#F3EEE3" : "#161412", 
+                                    fontSize: "10px", 
+                                    fontWeight: "bold",
+                                    display: "flex", 
+                                    alignItems: "center", 
+                                    gap: "3px" 
+                                  }}
+                                >
+                                  {speakingCardId === article.id ? "■" : "▶"} <span>LISTEN</span>
+                                </button>
+                              </div>
+
                               <h3 style={{ fontFamily: "Georgia, serif", fontSize: "18px", margin: "0 0 10px 0", lineHeight: 1.3 }}>{article.ai_headline || article.title}</h3>
                               <p style={{ fontSize: "14px", color: "#5E574C", lineHeight: 1.5, marginBottom: "20px", flex: 1 }}>{article.summary ? article.summary.substring(0, 120) + "..." : "No summary available."}</p>
                               
@@ -486,9 +557,37 @@ export default function HomeFeed({
                 {briefArticles.map((article, idx) => (
                   <div onClick={() => handleOpenArticle(article)} key={article.id} className="clickable-card" style={{ gap: "15px", borderBottom: "1px solid #C9C1B0", paddingBottom: "15px", marginBottom: "15px" }}>
                     <span style={{ color: "#C9A227", fontFamily: "Georgia, serif", fontSize: "24px", fontWeight: "bold", alignSelf: "flex-start", marginTop: "-3px" }}>{idx + 1}</span>
-                    <div>
+                    <div style={{ flex: 1 }}>
                       <h4 style={{ margin: "0 0 6px 0", fontSize: "18px", color: "#161412", lineHeight: 1.4, fontWeight: "bold" }}>{article.ai_headline || article.title}</h4>
-                      <span style={{ fontSize: "13px", color: "#5E574C", fontWeight: "bold" }}>{getProfName(article.professor_id).toUpperCase()} <span style={{ fontWeight: "normal" }}>· {article.category || "News"}</span></span>
+                      
+                      {/* Row layout with space-between pushes the author name left and the LISTEN button to the far right */}
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "4px" }}>
+                        <span style={{ fontSize: "13px", color: "#5E574C", fontWeight: "bold" }}>
+                          {getProfName(article.professor_id).toUpperCase()}
+                        </span>
+                        
+                        <button 
+                          onClick={(e) => handleCardListen(e, article)}
+                          title={speakingCardId === article.id ? "Stop reading" : "Listen"}
+                          style={{ 
+                            background: speakingCardId === article.id ? "#161412" : "transparent", 
+                            border: "1px solid #161412", 
+                            borderRadius: "3px", 
+                            padding: "2px 8px", 
+                            cursor: "pointer", 
+                            color: speakingCardId === article.id ? "#F3EEE3" : "#161412", 
+                            fontSize: "10px", 
+                            fontWeight: "bold",
+                            display: "flex", 
+                            alignItems: "center", 
+                            gap: "4px",
+                            letterSpacing: "0.5px"
+                          }}
+                        >
+                          {speakingCardId === article.id ? "■" : "▶"} <span>LISTEN</span>
+                        </button>
+                      </div>
+
                     </div>
                   </div>
                 ))}

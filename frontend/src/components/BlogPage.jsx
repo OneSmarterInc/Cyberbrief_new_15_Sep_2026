@@ -2,74 +2,84 @@ import React, { useState, useEffect, useRef } from "react";
 import { API_BASE_URL } from "../config";
 
 export default function BlogPage({ onBack }) {
-  const [blogs, setBlogs] = useState([]);
+  const [allFetchedBlogs, setAllFetchedBlogs] = useState([]);
+  const [displayedBlogs, setDisplayedBlogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedBlogId, setSelectedBlogId] = useState(null);
-  const blogsPerPage = 5;
 
   const hasFetchedRef = useRef(false);
 
   useEffect(() => {
     if (!hasFetchedRef.current) {
       hasFetchedRef.current = true;
-      fetchInitialAndBackground();
+      fetchAllBlogsSafely();
     }
   }, []);
 
-  // INSTANT LOAD OPTIMIZATION: Fetches page 1 immediately to display content, then fetches the rest lazily
-  const fetchInitialAndBackground = async () => {
+  // 1. Fetch all blogs safely in one go (or capped pages) to prevent 429 rate-limiting
+  const fetchAllBlogsSafely = async () => {
     setLoading(true);
+    let page = 1;
+    let keepFetching = true;
+    let accumulated = [];
+    const maxPages = 4; // Safety cap to protect against server rate limits
 
     try {
-      // 1. Fetch first page immediately for instant rendering
-      const res = await fetch(`${API_BASE_URL}/blogs/?page=1&limit=${blogsPerPage}`);
-      const data = await res.json();
-      const firstBatch = data.results || data.blogs || data || [];
+      while (keepFetching && page <= maxPages) {
+        const res = await fetch(`${API_BASE_URL}/blogs/?page=${page}&limit=5`);
+        const data = await res.json();
+        const batch = data.results || data.blogs || data || [];
 
-      if (firstBatch.length > 0) {
-        setBlogs(firstBatch);
-        setSelectedBlogId(firstBatch[0].id);
-      }
-      setLoading(false); // UI is now fully interactive immediately!
+        if (batch.length === 0) {
+          keepFetching = false;
+          break;
+        }
 
-      // 2. Fetch remaining pages silently in the background
-      if (data.next || firstBatch.length >= blogsPerPage) {
-        let page = 2;
-        let hasMore = true;
-        const maxPages = 5;
+        accumulated = [...accumulated, ...batch];
 
-        while (hasMore && page <= maxPages) {
-          await new Promise(resolve => setTimeout(resolve, 800)); // Gentle pause between requests
-          
-          const nextRes = await fetch(`${API_BASE_URL}/blogs/?page=${page}&limit=${blogsPerPage}`);
-          const nextData = await nextRes.json();
-          const nextBatch = nextData.results || nextData.blogs || nextData || [];
-
-          if (nextBatch.length === 0) {
-            hasMore = false;
-            break;
-          }
-
-          setBlogs(prev => {
-            const combined = [...prev, ...nextBatch];
-            return Array.from(new Map(combined.map(item => [item.id, item])).values());
-          });
-
-          if (!nextData.next && nextBatch.length < blogsPerPage) {
-            hasMore = false;
-          } else {
-            page += 1;
-          }
+        if (!data.next && batch.length < 5) {
+          keepFetching = false;
+        } else {
+          page += 1;
         }
       }
+
+      // Once fetched, store them and trigger the one-by-one visual reveal
+      if (accumulated.length > 0) {
+        setAllFetchedBlogs(accumulated);
+        setSelectedBlogId(accumulated[0].id);
+        setLoading(false);
+
+        // 2. Reveal blogs one by one on the screen
+        revealOneByOne(accumulated);
+      } else {
+        setLoading(false);
+      }
     } catch (err) {
-      console.error("Error loading blogs:", err);
+      console.error("Error fetching blogs:", err);
       setLoading(false);
     }
   };
 
-  const currentBlog = blogs.find(b => b.id === selectedBlogId) || blogs[0];
-  const recentBlogs = blogs.filter(b => b.id !== currentBlog?.id);
+  // Helper to animate/push items into view one after another
+  const revealOneByOne = (blogsList) => {
+    let index = 0;
+    const interval = setInterval(() => {
+      if (index < blogsList.length) {
+        const currentItem = blogsList[index];
+        setDisplayedBlogs(prev => {
+          if (prev.some(b => b.id === currentItem.id)) return prev;
+          return [...prev, currentItem];
+        });
+        index++;
+      } else {
+        clearInterval(interval);
+      }
+    }, 400); // 400ms delay between each blog appearing on screen
+  };
+
+  const currentBlog = allFetchedBlogs.find(b => b.id === selectedBlogId) || allFetchedBlogs[0];
+  const recentBlogs = displayedBlogs.filter(b => b.id !== currentBlog?.id);
 
   const getImageUrl = (blogObj) => {
     const rawImg = blogObj?.image || blogObj?.image_data || blogObj?.image_url;
@@ -104,7 +114,7 @@ export default function BlogPage({ onBack }) {
 
         {loading ? (
           <p style={{ textAlign: "center", color: "#5E574C", fontFamily: "Georgia, serif", fontStyle: "italic", fontSize: "18px" }}>Loading article...</p>
-        ) : blogs.length === 0 ? (
+        ) : allFetchedBlogs.length === 0 ? (
           <div style={{ textAlign: "center", padding: "50px", border: "1px solid #161412", backgroundColor: "#FDFBF7" }}>
             <p style={{ color: "#5E574C", fontFamily: "Georgia, serif", fontSize: "18px", fontStyle: "italic" }}>No blog posts available right now.</p>
           </div>
@@ -142,7 +152,7 @@ export default function BlogPage({ onBack }) {
               />
             </div>
 
-            {/* Right Column: Background Appending Sidebar */}
+            {/* Right Column: One-by-One Sequential Reveal Sidebar */}
             <div style={{ width: "380px", flexShrink: "0" }}>
               <h3 style={{ fontFamily: "Georgia, serif", fontSize: "22px", fontWeight: "bold", borderBottom: "2px solid #161412", paddingBottom: "10px", marginBottom: "25px", marginTop: 0, color: "#161412" }}>
                 Recent Editorials
@@ -150,14 +160,19 @@ export default function BlogPage({ onBack }) {
 
               <div style={{ display: "flex", flexDirection: "column", gap: "25px" }}>
                 {recentBlogs.length === 0 ? (
-                  <p style={{ fontSize: "14px", color: "#5E574C", fontStyle: "italic" }}>Loading more editorials...</p>
+                  <p style={{ fontSize: "14px", color: "#5E574C", fontStyle: "italic" }}>Loading editorials...</p>
                 ) : recentBlogs.map(blog => {
                   const thumbImg = getImageUrl(blog);
                   return (
                     <div 
                       key={blog.id} 
                       onClick={() => handleBlogClick(blog.id)}
-                      style={{ display: "flex", gap: "15px", cursor: "pointer", alignItems: "flex-start", padding: "10px", backgroundColor: "#FDFBF7", border: "1px solid #EBE4D5", transition: "border 0.2s" }}
+                      style={{ 
+                        display: "flex", gap: "15px", cursor: "pointer", alignItems: "flex-start", 
+                        padding: "10px", backgroundColor: "#FDFBF7", border: "1px solid #EBE4D5", 
+                        transition: "all 0.3s ease",
+                        animation: "fadeIn 0.4s ease-in-out" 
+                      }}
                       onMouseOver={(e) => e.currentTarget.style.borderColor = "#161412"}
                       onMouseOut={(e) => e.currentTarget.style.borderColor = "#EBE4D5"}
                     >

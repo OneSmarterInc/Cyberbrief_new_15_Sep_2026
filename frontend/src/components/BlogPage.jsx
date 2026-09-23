@@ -7,54 +7,63 @@ export default function BlogPage({ onBack }) {
   const [selectedBlogId, setSelectedBlogId] = useState(null);
   const blogsPerPage = 5;
 
-  // Strict guard to prevent duplicate concurrent loops in React Strict Mode
   const hasFetchedRef = useRef(false);
 
   useEffect(() => {
     if (!hasFetchedRef.current) {
       hasFetchedRef.current = true;
-      fetchSequentially();
+      fetchInitialAndBackground();
     }
   }, []);
 
-  const fetchSequentially = async () => {
+  // INSTANT LOAD OPTIMIZATION: Fetches page 1 immediately to display content, then fetches the rest lazily
+  const fetchInitialAndBackground = async () => {
     setLoading(true);
-    let page = 1;
-    let hasMore = true;
-    const maxPages = 5; // Safety cap: limits automatic loading to 5 pages max to prevent runaway requests
 
     try {
-      while (hasMore && page <= maxPages) {
-        const res = await fetch(`${API_BASE_URL}/blogs/?page=${page}&limit=${blogsPerPage}`);
-        const data = await res.json();
-        const fetchedBlogs = data.results || data.blogs || data || [];
+      // 1. Fetch first page immediately for instant rendering
+      const res = await fetch(`${API_BASE_URL}/blogs/?page=1&limit=${blogsPerPage}`);
+      const data = await res.json();
+      const firstBatch = data.results || data.blogs || data || [];
 
-        if (fetchedBlogs.length === 0) {
-          hasMore = false;
-          break;
-        }
+      if (firstBatch.length > 0) {
+        setBlogs(firstBatch);
+        setSelectedBlogId(firstBatch[0].id);
+      }
+      setLoading(false); // UI is now fully interactive immediately!
 
-        setBlogs(prev => {
-          const combined = [...prev, ...fetchedBlogs];
-          return Array.from(new Map(combined.map(item => [item.id, item])).values());
-        });
+      // 2. Fetch remaining pages silently in the background
+      if (data.next || firstBatch.length >= blogsPerPage) {
+        let page = 2;
+        let hasMore = true;
+        const maxPages = 5;
 
-        if (page === 1 && fetchedBlogs.length > 0) {
-          setSelectedBlogId(fetchedBlogs[0].id);
-        }
+        while (hasMore && page <= maxPages) {
+          await new Promise(resolve => setTimeout(resolve, 800)); // Gentle pause between requests
+          
+          const nextRes = await fetch(`${API_BASE_URL}/blogs/?page=${page}&limit=${blogsPerPage}`);
+          const nextData = await nextRes.json();
+          const nextBatch = nextData.results || nextData.blogs || nextData || [];
 
-        setLoading(false);
+          if (nextBatch.length === 0) {
+            hasMore = false;
+            break;
+          }
 
-        // Stop if backend says no next page or if we received fewer items than requested
-        if (!data.next && fetchedBlogs.length < blogsPerPage) {
-          hasMore = false;
-        } else {
-          page += 1;
-          await new Promise(resolve => setTimeout(resolve, 600));
+          setBlogs(prev => {
+            const combined = [...prev, ...nextBatch];
+            return Array.from(new Map(combined.map(item => [item.id, item])).values());
+          });
+
+          if (!nextData.next && nextBatch.length < blogsPerPage) {
+            hasMore = false;
+          } else {
+            page += 1;
+          }
         }
       }
     } catch (err) {
-      console.error("Error fetching blogs sequentially:", err);
+      console.error("Error loading blogs:", err);
       setLoading(false);
     }
   };
@@ -133,7 +142,7 @@ export default function BlogPage({ onBack }) {
               />
             </div>
 
-            {/* Right Column: Automatically Appending Sidebar */}
+            {/* Right Column: Background Appending Sidebar */}
             <div style={{ width: "380px", flexShrink: "0" }}>
               <h3 style={{ fontFamily: "Georgia, serif", fontSize: "22px", fontWeight: "bold", borderBottom: "2px solid #161412", paddingBottom: "10px", marginBottom: "25px", marginTop: 0, color: "#161412" }}>
                 Recent Editorials
@@ -141,7 +150,7 @@ export default function BlogPage({ onBack }) {
 
               <div style={{ display: "flex", flexDirection: "column", gap: "25px" }}>
                 {recentBlogs.length === 0 ? (
-                  <p style={{ fontSize: "14px", color: "#5E574C", fontStyle: "italic" }}>Fetching more editorials...</p>
+                  <p style={{ fontSize: "14px", color: "#5E574C", fontStyle: "italic" }}>Loading more editorials...</p>
                 ) : recentBlogs.map(blog => {
                   const thumbImg = getImageUrl(blog);
                   return (

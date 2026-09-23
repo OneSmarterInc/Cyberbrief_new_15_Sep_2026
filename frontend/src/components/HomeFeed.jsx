@@ -1,30 +1,42 @@
 import React, { useState, useEffect } from "react";
 import NewsCard from "./NewsCard";
 import TheWire from "./TheWire";
+import { API_BASE_URL } from "../config";
 
 const PROF_NAMES = [
   "Arion Vale", "Lyra Sen", "Kael Nore", "Elara Quinn", 
   "Dorian Kade", "Mira Solen", "Orion Blake", "Seraphina Rowe"
 ];
 
-// Mapping the 8 positions to match the backend keyword logic
+// Updated to match the new backend AI, Finance, and Cyber-Physical roles
 const PROF_POSITIONS = [
   "Security Operations (SOC)",
   "Vulnerability & Application Security",
   "Threat Intelligence & Research",
   "Malware & Ransomware Security",
-  "Identity & Data Security",
-  "Network & Infrastructure Security",
+  "AI & Machine Learning Security",
+  "Financial Cybersecurity & FinTech",
   "Cloud & Supply Chain Security",
-  "Privacy & Compliance"
+  "Core Security & Cyber-Physical Defense"
 ];
 
-const getProfName = (id) => PROF_NAMES[(id || 1) - 1] || PROF_NAMES[0];
-const getProfPosition = (id) => PROF_POSITIONS[(id || 1) - 1] || PROF_POSITIONS[0];
+const STAFF_VOICE_PROFILES = {
+  1: { gender: "male", pitch: 0.85, rate: 0.95, voiceOffset: 0 },
+  2: { gender: "female", pitch: 1.15, rate: 1.05, voiceOffset: 1 },
+  3: { gender: "male", pitch: 0.70, rate: 0.90, voiceOffset: 2 },
+  4: { gender: "female", pitch: 1.25, rate: 1.00, voiceOffset: 3 },
+  5: { gender: "male", pitch: 0.95, rate: 1.00, voiceOffset: 4 },
+  6: { gender: "female", pitch: 1.05, rate: 0.95, voiceOffset: 2 },
+  7: { gender: "male", pitch: 0.80, rate: 1.05, voiceOffset: 1 },
+  8: { gender: "female", pitch: 1.20, rate: 0.90, voiceOffset: 0 }
+};
+
+const getProfName = (id) => PROF_NAMES[(parseInt(id) || 1) - 1] || PROF_NAMES[0];
+const getProfPosition = (id) => PROF_POSITIONS[(parseInt(id) || 1) - 1] || PROF_POSITIONS[0];
 
 const getArticleImage = (article) => {
   if (!article) return "/images/Proff_1.png";
-  const profId = article.professor_id || 1; 
+  const profId = parseInt(article.professor_id) || 1; 
   return `/images/Proff_${profId}.png`; 
 };
 
@@ -52,9 +64,24 @@ export default function HomeFeed({
   
   const [modal, setModal] = useState({ show: false, title: "", message: "", type: "alert", onConfirm: null });
   const [selectedArticle, setSelectedArticle] = useState(null);
-  
+  const [speaking, setSpeaking] = useState(false);
   const [hoveredProf, setHoveredProf] = useState(null);
   const professors = [1, 2, 3, 4, 5, 6, 7, 8];
+
+  const [showQueryModal, setShowQueryModal] = useState(false);
+  const [queryText, setQueryText] = useState("");
+  const [submitStatus, setSubmitStatus] = useState(null);
+
+  // PRE-WARM VOICES BUG FIX
+  useEffect(() => {
+    if (typeof window !== "undefined" && 'speechSynthesis' in window) {
+      const loadVoices = () => window.speechSynthesis.getVoices();
+      loadVoices();
+      if (window.speechSynthesis.onvoiceschanged !== undefined) {
+        window.speechSynthesis.onvoiceschanged = loadVoices;
+      }
+    }
+  }, []);
 
   useEffect(() => {
     if (articles && articles.length > 0) {
@@ -88,6 +115,10 @@ export default function HomeFeed({
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
+    if (speaking && 'speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+      setSpeaking(false);
+    }
   }, [selectedArticle]);
 
   const handleOpenArticle = (article) => {
@@ -96,6 +127,10 @@ export default function HomeFeed({
   };
 
   const handleCloseArticle = () => {
+    if (speaking && 'speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+      setSpeaking(false);
+    }
     setSelectedArticle(null);
     const url = new URL(window.location);
     url.searchParams.delete('article_id');
@@ -105,6 +140,83 @@ export default function HomeFeed({
   const handleProfClick = (profId) => {
     window.history.pushState({}, "", `/newsroom?prof=${profId}`);
     window.dispatchEvent(new PopStateEvent("popstate"));
+  };
+
+  const submitQuery = async () => {
+    if (!queryText.trim() || !selectedArticle?.id) return;
+    setSubmitStatus("loading");
+    try {
+      const res = await fetch(`${API_BASE_URL}/news/${selectedArticle.id}/query/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query_text: queryText })
+      });
+      if (res.ok) {
+        setSubmitStatus("success");
+        setTimeout(() => {
+          setShowQueryModal(false);
+          setSubmitStatus(null);
+          setQueryText("");
+        }, 1500);
+      } else {
+        setSubmitStatus(null);
+        setModal({ show: true, title: "Submission Error", message: "Failed to send query to the editor. Please try again." });
+      }
+    } catch {
+      setSubmitStatus(null);
+      setModal({ show: true, title: "Network Error", message: "Could not connect to the server." });
+    }
+  };
+
+  const handleListen = () => {
+    if (!selectedArticle) return;
+
+    if (!('speechSynthesis' in window)) {
+      setModal({ show: true, title: "Not Supported", message: "Text-to-speech is not supported by your browser.", type: "alert" });
+      return;
+    }
+
+    if (speaking) {
+      window.speechSynthesis.cancel();
+      setSpeaking(false);
+      return;
+    }
+
+    window.speechSynthesis.cancel();
+
+    const profId = parseInt(selectedArticle.professor_id) || 1;
+    const textToSpeak = `${selectedArticle.ai_headline || selectedArticle.title || ""}. ${selectedArticle.summary || ""}`;
+    const utterance = new SpeechSynthesisUtterance(textToSpeak);
+
+    const profile = STAFF_VOICE_PROFILES[profId] || STAFF_VOICE_PROFILES[1];
+    utterance.pitch = profile.pitch;
+    utterance.rate = profile.rate;
+
+    const voices = window.speechSynthesis.getVoices();
+    if (voices.length > 0) {
+      const englishVoices = voices.filter(v => v.lang.startsWith("en"));
+      
+      let genderFilteredVoices = englishVoices.filter(v => {
+        const name = v.name.toLowerCase();
+        if (profile.gender === "female") {
+          return name.includes("female") || /zira|samantha|karen|victoria|moira|susan|hazel|amelia|olivia/i.test(name);
+        } else {
+          return name.includes("male") || /david|mark|george|daniel|oliver|james|ryan|arthur/i.test(name);
+        }
+      });
+
+      let pool = genderFilteredVoices.length > 0 ? genderFilteredVoices : englishVoices;
+      if (pool.length > 0) {
+        const selectedIndex = profile.voiceOffset % pool.length;
+        utterance.voice = pool[selectedIndex];
+      }
+    }
+
+    utterance.onstart = () => setSpeaking(true);
+    utterance.onend = () => setSpeaking(false);
+    utterance.onerror = () => setSpeaking(false);
+
+    window.speechSynthesis.speak(utterance);
   };
 
   const mainArticles = currentArticles.slice(0, 3);
@@ -120,7 +232,43 @@ export default function HomeFeed({
     
     return (
       <div style={{ maxWidth: "950px", margin: "0 auto", padding: "40px 20px", width: "100%" }}>
-        <div style={{ backgroundColor: "#F3EEE3", borderRadius: "8px", border: "1px solid #161412", overflow: "hidden", boxShadow: "0 8px 30px rgba(0,0,0,0.08)" }}>
+        <div style={{ backgroundColor: "#F3EEE3", borderRadius: "8px", border: "1px solid #161412", overflow: "hidden", boxShadow: "0 8px 30px rgba(0,0,0,0.08)", position: "relative" }}>
+          
+          {showQueryModal && (
+            <div 
+              onClick={(e) => e.stopPropagation()} 
+              style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(22,20,18,0.9)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999, padding: "20px", cursor: "default" }}
+            >
+              <div style={{ backgroundColor: "#F3EEE3", padding: "30px", width: "100%", maxWidth: "400px", border: "2px solid #C9A227", borderRadius: "4px" }}>
+                <h3 style={{ margin: "0 0 15px 0", fontFamily: "Georgia, serif", color: "#161412" }}>Submit Query to Editor</h3>
+                <p style={{ fontSize: "12px", color: "#5E574C", marginBottom: "15px" }}>Ask a question or report an issue regarding this specific story.</p>
+                
+                <textarea 
+                  value={queryText}
+                  onChange={(e) => setQueryText(e.target.value)}
+                  placeholder="What would you like to ask?"
+                  style={{ width: "100%", height: "100px", padding: "10px", border: "1px solid #161412", backgroundColor: "#fff", outline: "none", resize: "none", marginBottom: "15px", fontFamily: "Arial", color: "#161412", boxSizing: "border-box" }}
+                />
+                
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <button 
+                    onClick={() => setShowQueryModal(false)} 
+                    style={{ padding: "8px 15px", border: "none", background: "transparent", cursor: "pointer", fontWeight: "bold", color: "#5E574C" }}
+                  >
+                    CANCEL
+                  </button>
+                  <button 
+                    onClick={submitQuery} 
+                    disabled={submitStatus === "loading" || !queryText.trim()}
+                    style={{ padding: "8px 15px", border: "none", background: "#161412", color: "#F3EEE3", cursor: "pointer", fontWeight: "bold", borderRadius: "3px" }}
+                  >
+                    {submitStatus === "loading" ? "SENDING..." : submitStatus === "success" ? "SENT!" : "SUBMIT"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div style={{ position: "relative", width: "100%", height: "450px", backgroundColor: "#111" }}>
             <img src={displayImage} alt={getProfName(selectedArticle.professor_id)} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center 15%" }} />
             <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: "linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.5) 60%, transparent 100%)", padding: "50px 40px 30px 40px", display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
@@ -138,11 +286,57 @@ export default function HomeFeed({
           </div>
           <div style={{ padding: "40px" }}>
             <p style={{ fontSize: "18px", color: "#161412", lineHeight: "1.8", margin: "0 0 50px 0", fontFamily: "Arial, sans-serif" }}>{selectedArticle.summary || "No summary is available for this article at this time. Click the original article link below to read the full coverage."}</p>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid #C9C1B0", paddingTop: "25px" }}>
-              <a href={selectedArticle.link} target="_blank" rel="noopener noreferrer" style={{ color: "#d32f2f", textDecoration: "none", fontSize: "15px", display: "flex", alignItems: "center", gap: "6px", transition: "opacity 0.2s", fontWeight: "bold" }}>
-                Original Article 
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
-              </a>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid #C9C1B0", paddingTop: "25px", flexWrap: "wrap", gap: "20px" }}>
+              
+              <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+                <a href={selectedArticle.link} target="_blank" rel="noopener noreferrer" style={{ color: "#d32f2f", textDecoration: "none", fontSize: "14px", display: "flex", alignItems: "center", gap: "6px", transition: "opacity 0.2s", fontWeight: "bold", marginRight: "10px" }}>
+                  Original Article 
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                </a>
+                
+                <button 
+                  onClick={handleListen}
+                  style={{ 
+                    backgroundColor: speaking ? "#161412" : "transparent", 
+                    color: speaking ? "#F3EEE3" : "#161412", 
+                    border: "1px solid #161412", 
+                    padding: "8px 16px", 
+                    fontWeight: "bold", 
+                    cursor: "pointer", 
+                    fontSize: "11px", 
+                    display: "flex", 
+                    alignItems: "center", 
+                    gap: "6px",
+                    textTransform: "uppercase",
+                    letterSpacing: "1px",
+                    transition: "all 0.2s"
+                  }}
+                >
+                  <span>{speaking ? "■" : "▶"}</span> {speaking ? "STOP READING" : "LISTEN"}
+                </button>
+
+                <button 
+                  onClick={() => setShowQueryModal(true)} 
+                  style={{ 
+                    backgroundColor: "#EBE4D5", 
+                    color: "#161412", 
+                    border: "none", 
+                    padding: "9px 16px", 
+                    fontWeight: "bold", 
+                    cursor: "pointer", 
+                    fontSize: "11px", 
+                    display: "flex", 
+                    alignItems: "center", 
+                    gap: "6px",
+                    textTransform: "uppercase",
+                    letterSpacing: "1px",
+                    transition: "background 0.2s" 
+                  }}
+                >
+                  SUBMIT QUERY <span style={{ fontSize: "14px", fontWeight: "900" }}>?</span>
+                </button>
+              </div>
+
               <button onClick={handleCloseArticle} style={{ backgroundColor: "#d32f2f", color: "#ffffff", border: "none", padding: "10px 20px", fontWeight: "bold", cursor: "pointer", borderRadius: "4px", fontSize: "14px", display: "flex", alignItems: "center", gap: "8px" }}>
                 <span style={{ fontSize: "16px", marginBottom: "2px" }}>←</span> Back to Feed
               </button>
@@ -356,10 +550,8 @@ export default function HomeFeed({
             ))}
           </div>
 
-          {/* Golden Line */}
           <div style={{ height: "2px", backgroundColor: "#D9CBA0", width: "100%", marginBottom: "40px" }}></div>
 
-          {/* Volunteer Banner */}
           <div 
             onClick={() => {
               window.history.pushState({}, "", "/join");

@@ -1,11 +1,16 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { API_BASE_URL } from "../config";
 
 const PROF_NAMES = [
   "Arion Vale", "Lyra Sen", "Kael Nore", "Elara Quinn", 
   "Dorian Kade", "Mira Solen", "Orion Blake", "Seraphina Rowe"
 ];
-const getProfName = (id) => PROF_NAMES[(id || 1) - 1] || PROF_NAMES[0];
+
+// Fallback logic requires strict number parsing
+const getProfName = (id) => {
+  const numericId = parseInt(id) || 1;
+  return PROF_NAMES[numericId - 1] || PROF_NAMES[0];
+};
 
 const STAFF_VOICE_PROFILES = {
   1: { gender: "male", pitch: 0.85, rate: 0.95, voiceOffset: 0 },
@@ -44,15 +49,28 @@ const getRelativeTime = (dateString) => {
 };
 
 export default function NewsCard({ article, index, onArticleClick }) {
+  // CRASH PREVENTION
+  if (!article) return null;
+
   const [speaking, setSpeaking] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [queryText, setQueryText] = useState("");
   const [submitStatus, setSubmitStatus] = useState(null);
-
   const [modal, setModal] = useState({ show: false, title: "", message: "" });
 
-  // 1. Optional chaining applied here
-  const profId = article?.professor_id || 1;
+  // PRE-WARM VOICES BUG FIX: Forces browser to load voices immediately instead of waiting for the first click
+  useEffect(() => {
+    if (typeof window !== "undefined" && 'speechSynthesis' in window) {
+      const loadVoices = () => window.speechSynthesis.getVoices();
+      loadVoices();
+      if (window.speechSynthesis.onvoiceschanged !== undefined) {
+        window.speechSynthesis.onvoiceschanged = loadVoices;
+      }
+    }
+  }, []);
+
+  const profId = parseInt(article?.professor_id) || 1;
+  const fullName = getProfName(profId);
   const articleImage = `/images/Proff_${profId}.png`;
 
   const getTruncatedSummary = (text) => {
@@ -78,7 +96,6 @@ export default function NewsCard({ article, index, onArticleClick }) {
 
     window.speechSynthesis.cancel();
 
-    // 2. Optional chaining applied to text parsing
     const textToSpeak = `${article?.ai_headline || article?.title || ""}. ${article?.summary || ""}`;
     const utterance = new SpeechSynthesisUtterance(textToSpeak);
 
@@ -90,18 +107,19 @@ export default function NewsCard({ article, index, onArticleClick }) {
     if (voices.length > 0) {
       const englishVoices = voices.filter(v => v.lang.startsWith("en"));
       
-      const genderFilteredVoices = englishVoices.filter(v => {
+      let genderFilteredVoices = englishVoices.filter(v => {
         const name = v.name.toLowerCase();
         if (profile.gender === "female") {
-          return name.includes("female") || name.includes("zira") || name.includes("samantha") || name.includes("karen") || name.includes("victoria") || name.includes("moira") || name.includes("hazel") || name.includes("susan");
+          return name.includes("female") || /zira|samantha|karen|victoria|moira|susan|hazel|amelia|olivia/i.test(name);
         } else {
-          return name.includes("male") || name.includes("david") || name.includes("mark") || name.includes("george") || name.includes("daniel") || name.includes("oliver") || name.includes("james") || name.includes("ryan");
+          return name.includes("male") || /david|mark|george|daniel|oliver|james|ryan|arthur/i.test(name);
         }
       });
 
-      const pool = genderFilteredVoices.length > 0 ? genderFilteredVoices : englishVoices;
+      let pool = genderFilteredVoices.length > 0 ? genderFilteredVoices : englishVoices;
+      
       if (pool.length > 0) {
-        const selectedIndex = (profile.voiceOffset + (profId * 2)) % pool.length;
+        const selectedIndex = profile.voiceOffset % pool.length;
         utterance.voice = pool[selectedIndex];
       }
     }
@@ -174,15 +192,14 @@ export default function NewsCard({ article, index, onArticleClick }) {
         </div>
       )}
 
-      <img className="news-image" src={articleImage} alt={getProfName(profId)} />
+      <img className="news-image" src={articleImage} alt={fullName} />
 
       <div className="news-content">
         <div className="meta">
-          {/* 3. Optional chaining on rendering properties */}
           <span className="category">{(article?.category || "NEWS").toUpperCase()}</span>
           <span>{article?.source || "NEWS DESK"}</span><i />
           
-          <span style={{ color: "#C9A227", fontWeight: "bold" }}>{getProfName(profId).toUpperCase()}</span><i />
+          <span style={{ color: "#C9A227", fontWeight: "bold" }}>{fullName.toUpperCase()}</span><i />
           
           <span>{getRelativeTime(article?.published).toUpperCase()}</span>
         </div>
@@ -192,28 +209,70 @@ export default function NewsCard({ article, index, onArticleClick }) {
         
         <p>{getTruncatedSummary(article?.summary)}</p>
 
-        <div className="card-bottom" style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+        {/* Updated Button Block matching the screenshot UI */}
+        <div className="card-bottom" style={{ display: "flex", gap: "10px", flexWrap: "wrap", alignItems: "center", marginTop: "auto", paddingTop: "15px" }}>
+          
           <button 
             className={`listen ${speaking ? "active" : ""}`} 
             onClick={(e) => { e.stopPropagation(); handleListen(); }}
+            style={{ 
+              backgroundColor: speaking ? "#161412" : "transparent", 
+              color: speaking ? "#F3EEE3" : "#161412", 
+              border: "1px solid #161412", 
+              padding: "8px 16px", 
+              fontWeight: "bold", 
+              cursor: "pointer", 
+              fontSize: "11px", 
+              display: "flex", 
+              alignItems: "center", 
+              gap: "6px",
+              textTransform: "uppercase",
+              letterSpacing: "1px"
+            }}
           >
-            <span>{speaking ? "■" : "▶"}</span> {speaking ? "STOP READING" : `LISTEN (${getProfName(profId).split(" ")[0]})`}
+            <span>{speaking ? "■" : "▶"}</span> {speaking ? "STOP READING" : "LISTEN"}
           </button>
           
           <button 
             className="read" 
             onClick={(e) => { e.stopPropagation(); setShowModal(true); }} 
-            style={{ backgroundColor: "#EBE4D5", color: "#161412" }}
+            style={{ 
+              backgroundColor: "#EBE4D5", 
+              color: "#161412", 
+              border: "none", 
+              padding: "9px 16px", 
+              fontWeight: "bold", 
+              cursor: "pointer", 
+              fontSize: "11px",
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              textTransform: "uppercase",
+              letterSpacing: "1px"
+            }}
           >
-            SUBMIT QUERY <span>?</span>
+            SUBMIT QUERY <span style={{ fontSize: "14px", fontWeight: "900" }}>?</span>
           </button>
 
           <button 
             className="read" 
             onClick={(e) => { e.stopPropagation(); handleCardClick(); }} 
-            style={{ marginLeft: "auto" }}
+            style={{ 
+              marginLeft: "auto", 
+              background: "transparent", 
+              border: "none", 
+              color: "#8F7118", 
+              fontWeight: "bold", 
+              fontSize: "11px", 
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: "4px",
+              textTransform: "uppercase",
+              letterSpacing: "1px"
+            }}
           >
-            VIEW DETAILS <span>→</span>
+            VIEW DETAILS <span style={{ fontSize: "14px" }}>→</span>
           </button>
         </div>
       </div>

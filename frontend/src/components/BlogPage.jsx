@@ -4,37 +4,65 @@ import { API_BASE_URL } from "../config";
 export default function BlogPage({ onBack }) {
   const [blogs, setBlogs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [selectedBlogId, setSelectedBlogId] = useState(null);
   
-  // Pagination State for the Sidebar
+  // Pagination State for Progressive Loading
   const [currentPage, setCurrentPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
   const blogsPerPage = 5;
 
   useEffect(() => {
-    fetch(`${API_BASE_URL}/blogs/`)
+    fetchBlogs(1);
+  }, []);
+
+  const fetchBlogs = (page) => {
+    page === 1 ? setLoading(true) : setLoadingMore(true);
+    
+    // Appending ?page=X allows the backend to return just one chunk at a time
+    fetch(`${API_BASE_URL}/blogs/?page=${page}&limit=${blogsPerPage}`)
       .then(res => res.json())
       .then(data => {
-        const fetchedBlogs = data.blogs || [];
-        setBlogs(fetchedBlogs);
-        if (fetchedBlogs.length > 0) {
-          setSelectedBlogId(fetchedBlogs[0].id); // Default to latest blog
+        // Safely handle different backend response formats (Paginated vs Raw Array)
+        const fetchedBlogs = data.results || data.blogs || data || [];
+        
+        if (page === 1) {
+          setBlogs(fetchedBlogs);
+          if (fetchedBlogs.length > 0) {
+            setSelectedBlogId(fetchedBlogs[0].id); // Default to latest blog
+          }
+        } else {
+          // Append new blogs to the existing list
+          setBlogs(prev => [...prev, ...fetchedBlogs]);
         }
+        
+        // If the backend returns fewer items than the limit, we've reached the end
+        if (!data.next && fetchedBlogs.length < blogsPerPage) {
+          setHasMore(false);
+        } else {
+          setHasMore(true);
+        }
+        
         setLoading(false);
+        setLoadingMore(false);
       })
       .catch(err => {
         console.error(err);
         setLoading(false);
+        setLoadingMore(false);
       });
-  }, []);
+  };
+
+  const loadMore = () => {
+    if (!loadingMore && hasMore) {
+      const nextPage = currentPage + 1;
+      setCurrentPage(nextPage);
+      fetchBlogs(nextPage);
+    }
+  };
 
   const currentBlog = blogs.find(b => b.id === selectedBlogId) || blogs[0];
   const recentBlogs = blogs.filter(b => b.id !== currentBlog?.id);
-
-  // Pagination Logic
-  const indexOfLastBlog = currentPage * blogsPerPage;
-  const indexOfFirstBlog = indexOfLastBlog - blogsPerPage;
-  const currentSidebarBlogs = recentBlogs.slice(indexOfFirstBlog, indexOfLastBlog);
-  const totalPages = Math.ceil(recentBlogs.length / blogsPerPage);
 
   // HELPER: Resolves the image URL safely (Handles absolute, relative, and Base64 strings)
   const getImageUrl = (blogObj) => {
@@ -62,7 +90,6 @@ export default function BlogPage({ onBack }) {
 
   const handleBlogClick = (id) => {
     setSelectedBlogId(id);
-    setCurrentPage(1); // Reset sidebar pagination when viewing a new blog
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -113,16 +140,16 @@ export default function BlogPage({ onBack }) {
               />
             </div>
 
-            {/* Right Column: Recent Blogs Sidebar with Pagination */}
+            {/* Right Column: Progressively Loaded Sidebar */}
             <div style={{ width: "380px", flexShrink: "0" }}>
               <h3 style={{ fontFamily: "Georgia, serif", fontSize: "22px", fontWeight: "bold", borderBottom: "2px solid #161412", paddingBottom: "10px", marginBottom: "25px", marginTop: 0, color: "#161412" }}>
                 Recent Editorials
               </h3>
 
               <div style={{ display: "flex", flexDirection: "column", gap: "25px" }}>
-                {currentSidebarBlogs.length === 0 ? (
+                {recentBlogs.length === 0 ? (
                   <p style={{ fontSize: "14px", color: "#5E574C", fontStyle: "italic" }}>No other recent blogs.</p>
-                ) : currentSidebarBlogs.map(blog => {
+                ) : recentBlogs.map(blog => {
                   const thumbImg = getImageUrl(blog);
                   return (
                     <div 
@@ -156,45 +183,29 @@ export default function BlogPage({ onBack }) {
                 })}
               </div>
 
-              {/* PAGINATION CONTROLS */}
-              {totalPages > 1 && (
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "30px", borderTop: "1px solid #C9C1B0", paddingTop: "20px" }}>
-                  <button 
-                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                    disabled={currentPage === 1}
-                    style={{ 
-                      padding: "6px 14px", 
-                      backgroundColor: currentPage === 1 ? "transparent" : "#161412", 
-                      color: currentPage === 1 ? "#C9C1B0" : "#F3EEE3", 
-                      border: `1px solid ${currentPage === 1 ? "#C9C1B0" : "#161412"}`, 
-                      cursor: currentPage === 1 ? "default" : "pointer",
-                      fontWeight: "bold",
-                      fontSize: "12px"
-                    }}
-                  >
-                    &larr; PREV
-                  </button>
-                  
-                  <span style={{ fontSize: "12px", color: "#5E574C", fontWeight: "bold", letterSpacing: "1px" }}>
-                    PAGE {currentPage} OF {totalPages}
-                  </span>
-                  
-                  <button 
-                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                    disabled={currentPage === totalPages}
-                    style={{ 
-                      padding: "6px 14px", 
-                      backgroundColor: currentPage === totalPages ? "transparent" : "#161412", 
-                      color: currentPage === totalPages ? "#C9C1B0" : "#F3EEE3", 
-                      border: `1px solid ${currentPage === totalPages ? "#C9C1B0" : "#161412"}`, 
-                      cursor: currentPage === totalPages ? "default" : "pointer",
-                      fontWeight: "bold",
-                      fontSize: "12px"
-                    }}
-                  >
-                    NEXT &rarr;
-                  </button>
-                </div>
+              {/* PROGRESSIVE LOADING BUTTON */}
+              {hasMore && (
+                <button 
+                  onClick={loadMore}
+                  disabled={loadingMore}
+                  style={{ 
+                    width: "100%", 
+                    padding: "14px", 
+                    marginTop: "30px", 
+                    backgroundColor: loadingMore ? "#EBE4D5" : "transparent", 
+                    color: "#161412", 
+                    border: "2px solid #161412", 
+                    fontWeight: "bold", 
+                    cursor: loadingMore ? "default" : "pointer",
+                    fontFamily: "Arial, sans-serif", 
+                    letterSpacing: "1px",
+                    transition: "all 0.2s"
+                  }}
+                  onMouseOver={(e) => { if (!loadingMore) { e.target.style.backgroundColor = "#161412"; e.target.style.color = "#F3EEE3"; } }}
+                  onMouseOut={(e) => { if (!loadingMore) { e.target.style.backgroundColor = "transparent"; e.target.style.color = "#161412"; } }}
+                >
+                  {loadingMore ? "FETCHING..." : "LOAD MORE EDITORIALS ↓"}
+                </button>
               )}
 
             </div>

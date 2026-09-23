@@ -50,6 +50,21 @@ export default function Navbar({
     return () => clearInterval(timer);
   }, []);
 
+  // GLOBAL AUDIO CONFLICT FIX: Stop navbar audio if a news card starts speaking
+  useEffect(() => {
+    const handleGlobalStopAudio = () => {
+      if (window.audioPlayer) {
+        window.audioPlayer.pause();
+      }
+      setSpeaking(false);
+      setIsBuffering(false);
+      setProgress(0);
+      setCurrentTime(0);
+    };
+    window.addEventListener("stop-other-audio", handleGlobalStopAudio);
+    return () => window.removeEventListener("stop-other-audio", handleGlobalStopAudio);
+  }, []);
+
   const navigate = (path) => {
     setDrawerOpen(false); 
     window.history.pushState({}, "", path);
@@ -77,13 +92,20 @@ export default function Navbar({
 
   const readSummary = () => {
     if (speaking || isBuffering) {
-      window.audioPlayer?.pause();
+      if (window.audioPlayer) window.audioPlayer.pause();
       setSpeaking(false);
       setIsBuffering(false);
       setProgress(0);
       setCurrentTime(0);
       return;
     }
+
+    // Stop any active SpeechSynthesis on news cards before starting navbar briefing audio
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
+    // Also notify any active cards to switch off their listen state
+    window.dispatchEvent(new CustomEvent("stop-other-audio", { detail: "navbar-audio" }));
 
     const textToSpeak = latestSummary || latestHeadline || "Latest news is loading.";
     const audioUrl = `${API_BASE_URL}/audio/?text=${encodeURIComponent(textToSpeak)}`;
@@ -181,12 +203,12 @@ export default function Navbar({
         .aggregate-clone { background: #F3EEE3; color: #161412; width: 100%; font-family: Arial, Helvetica, sans-serif; }
         .aggregate-clone * { box-sizing: border-box; }
         .aggregate-wrap { width: 100%; max-width: 1455px; margin: 0 auto; padding: 0 20px; }
-  
+ 
         /* MEDIUM TOPBAR */
         .aggregate-topbar { min-height: 38px; border-top: 1px solid #161412; border-bottom: 1px solid #161412; display: flex; align-items: center; justify-content: space-between; padding: 0 22px; color: #5E574C; font-size: 13.5px; width: 100%; flex-wrap: wrap; background: #F3EEE3; position: relative; z-index: 50; }
         .aggregate-top-left { display: flex; align-items: center; gap: 9px; padding: 8px 0; flex: 1; }
         .aggregate-live-dot { width: 8px; height: 8px; border-radius: 50%; background: #1F3A2E; display: inline-block; flex: none; }
-  
+ 
         .hamburger-icon { background: transparent; border: none; color: #161412; font-size: 20px; cursor: pointer; display: flex; align-items: center; padding: 0 9px 0 0; transition: color 0.2s ease; }
         .hamburger-icon:hover { color: #C9A227; }
 
@@ -195,17 +217,17 @@ export default function Navbar({
         .aggregate-top-link::after { content: ""; position: absolute; left: 13px; right: 13px; bottom: 6px; height: 2px; background: #C9A227; transform: scaleX(0); transform-origin: center; transition: transform .2s ease; }
         .aggregate-top-link:focus-visible, .aggregate-top-link:hover { color: #161412; background: rgba(201,162,39,.08); outline: 0; }
         .aggregate-top-link:focus-visible::after, .aggregate-top-link:hover::after { transform: scaleX(1); }
-  
+ 
         .aggregate-subscribe { border: 0; background: #C9A227; color: #161412; font-weight: 700; padding: 0 16px; cursor: pointer; font-size: 13.5px; transition: background-color .2s ease, color .2s ease, transform .15s ease; display: inline-flex; align-items: center; justify-content: center; }
         .aggregate-subscribe:focus-visible, .aggregate-subscribe:hover { background: #8F7118; color: #F3EEE3; outline: 0; }
         .aggregate-subscribe:active { transform: translateY(1px); }
-  
+ 
         /* MEDIUM MASTHEAD */
         .aggregate-masthead { padding: 22px 20px; border-bottom: 1px solid #161412; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
         .aggregate-brand-container { border: 0; background: transparent; padding: 0; margin: 0; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 14px; transition: opacity .2s ease, transform .2s ease; }
         .aggregate-brand-container:hover { opacity: 0.9; }
         .aggregate-brand-container:active { transform: scale(.995); }
-  
+ 
         .aggregate-brand { font-family: Georgia, "Times New Roman", serif; font-size: clamp(44px, 6vw, 78px); line-height: .83; font-weight: 900; letter-spacing: -3px; color: #161412; margin: 0; }
         .aggregate-logo-img { width: clamp(44px, 6vw, 75px); height: clamp(44px, 6vw, 75px); object-fit: contain; border-radius: 7px; }
 
@@ -219,13 +241,13 @@ export default function Navbar({
         
         .aggregate-briefing-link-wrapper { text-decoration: none; color: inherit; display: block; transition: opacity 0.2s; cursor: pointer; }
         .aggregate-briefing-link-wrapper:hover { opacity: 0.75; }
-  
+ 
         .aggregate-player-container { display: flex; flex-direction: column; gap: 8px; width: 100%; max-width: 530px; }
         
         .aggregate-player { border: 1px solid #161412; padding: 5px 12px; display: flex; align-items: center; gap: 11px; background: #F3EEE3; min-height: 40px; width: 100%; }
         .aggregate-play { width: 27px; height: 27px; border-radius: 50%; border: 0; background: #161412; color: #F3EEE3; display: flex; align-items: center; justify-content: center; cursor: pointer; flex: none; font-size: 11px; }
         .aggregate-play.active, .aggregate-play:hover { background: #8F7118; }
-  
+ 
         @keyframes spin { 100% { transform: rotate(360deg); } }
         .buffering-icon { display: inline-block; animation: spin 2s linear infinite; font-size: 11px; }
 
@@ -239,15 +261,15 @@ export default function Navbar({
 
         .side-drawer-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); z-index: 9998; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
         .side-drawer-overlay.open { opacity: 1; pointer-events: auto; }
-  
+ 
         .side-drawer { position: fixed; top: 0; left: -320px; width: 290px; height: 100vh; background: #161412; color: #F3EEE3; z-index: 9999; transition: left 0.3s ease; padding: 35px 25px; box-shadow: 5px 0 15px rgba(0,0,0,0.5); display: flex; flex-direction: column; }
         .side-drawer.open { left: 0; }
         .drawer-close { align-self: flex-end; background: transparent; border: none; color: #C9C1B0; font-size: 22px; cursor: pointer; padding: 0; margin-bottom: 30px; transition: color 0.2s; }
         .drawer-close:hover { color: #C9A227; }
-  
+ 
         .drawer-link { display: block; color: #F3EEE3; text-decoration: none; font-size: 20px; font-family: Georgia, serif; padding: 12px 0; border-bottom: 1px solid #332F2C; cursor: pointer; transition: color 0.2s ease, padding-left 0.2s ease; }
         .drawer-link:hover { color: #C9A227; padding-left: 9px; }
-  
+ 
         @media (max-width: 980px) {
           .aggregate-briefing-inner { grid-template-columns: 1fr; gap: 18px; }
         }
@@ -293,13 +315,13 @@ export default function Navbar({
           </button>
         </div>
       </div>
-  
+ 
       <div className="aggregate-topbar">
         <div className="aggregate-top-left">
           <button className="hamburger-icon" onClick={() => setDrawerOpen(true)}>☰</button>
           <span>{currentDate} · {totalStories} stories compiled today from {totalSources} sources</span>
         </div>
-  
+ 
         <div className="aggregate-top-right">
           <a className="aggregate-top-link" href="/how" onClick={(e) => handleNavClick(e, "/how", onAbout)}>About the desk</a>
           <a className="aggregate-top-link" href="/blogs" onClick={(e) => handleNavClick(e, "/blogs", onBlogs)}>Blogs</a>
@@ -317,7 +339,7 @@ export default function Navbar({
 
       <section className="aggregate-briefing">
         <div className="aggregate-wrap aggregate-briefing-inner">
-  
+ 
           <div>
             <a 
               href={latestId ? `/?article_id=${latestId}` : "#"} 
@@ -329,7 +351,7 @@ export default function Navbar({
               <div className="aggregate-briefing-summary">{displaySummary}</div>
             </a>
           </div>
-  
+ 
           <div className="aggregate-player-container">
             <div className="aggregate-player">
               <button 

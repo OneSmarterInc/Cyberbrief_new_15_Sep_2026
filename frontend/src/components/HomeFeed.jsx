@@ -83,6 +83,19 @@ export default function HomeFeed({
     }
   }, []);
 
+  // GLOBAL AUDIO CONFLICT FIX: Stop speech or audio if another stream is triggered elsewhere
+  useEffect(() => {
+    const handleGlobalStopAudio = (e) => {
+      if (e.detail !== speakingCardId && ('speechSynthesis' in window)) {
+        window.speechSynthesis.cancel();
+        setSpeaking(false);
+        setSpeakingCardId(null);
+      }
+    };
+    window.addEventListener("stop-other-audio", handleGlobalStopAudio);
+    return () => window.removeEventListener("stop-other-audio", handleGlobalStopAudio);
+  }, [speakingCardId]);
+
   useEffect(() => {
     if (articles && articles.length > 0) {
       const params = new URLSearchParams(window.location.search);
@@ -181,6 +194,8 @@ export default function HomeFeed({
       return;
     }
 
+    // Stop all other audio streams across the page
+    window.dispatchEvent(new CustomEvent("stop-other-audio", { detail: article.id }));
     window.speechSynthesis.cancel();
 
     const profId = parseInt(article.professor_id) || 1;
@@ -209,7 +224,10 @@ export default function HomeFeed({
       }
     }
 
-    utterance.onstart = () => setSpeakingCardId(article.id);
+    utterance.onstart = () => {
+      setSpeakingCardId(article.id);
+      setSpeaking(false);
+    };
     utterance.onend = () => setSpeakingCardId(null);
     utterance.onerror = () => setSpeakingCardId(null);
 
@@ -230,6 +248,8 @@ export default function HomeFeed({
       return;
     }
 
+    // Stop all other audio streams across the page
+    window.dispatchEvent(new CustomEvent("stop-other-audio", { detail: "selected-article" }));
     window.speechSynthesis.cancel();
 
     const profId = parseInt(selectedArticle.professor_id) || 1;
@@ -260,7 +280,10 @@ export default function HomeFeed({
       }
     }
 
-    utterance.onstart = () => setSpeaking(true);
+    utterance.onstart = () => {
+      setSpeaking(true);
+      setSpeakingCardId(null);
+    };
     utterance.onend = () => setSpeaking(false);
     utterance.onerror = () => setSpeaking(false);
 
@@ -489,7 +512,6 @@ export default function HomeFeed({
                                 <span style={{ position: "absolute", bottom: "10px", left: "10px", color: "#F3EEE3", fontSize: "11px", fontWeight: "bold", textShadow: "0px 2px 4px rgba(0,0,0,0.8)" }}>Generated illustration</span>
                               </div>
 
-                              {/* Discover More Card Meta with Black-bordered sound button */}
                               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "8px" }}>
                                 <span style={{ color: "#C9A227", fontSize: "13px", fontWeight: "bold" }}>
                                   {article.category || "News"} • {getProfName(article.professor_id).toUpperCase()}
@@ -560,7 +582,6 @@ export default function HomeFeed({
                     <div style={{ flex: 1 }}>
                       <h4 style={{ margin: "0 0 6px 0", fontSize: "18px", color: "#161412", lineHeight: 1.4, fontWeight: "bold" }}>{article.ai_headline || article.title}</h4>
                       
-                      {/* Row layout with space-between pushes the author name left and the LISTEN button to the far right */}
                       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "4px" }}>
                         <span style={{ fontSize: "13px", color: "#5E574C", fontWeight: "bold" }}>
                           {getProfName(article.professor_id).toUpperCase()}

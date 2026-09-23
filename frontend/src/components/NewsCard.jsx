@@ -58,7 +58,7 @@ export default function NewsCard({ article, index, onArticleClick }) {
   const [submitStatus, setSubmitStatus] = useState(null);
   const [modal, setModal] = useState({ show: false, title: "", message: "" });
 
-  // PRE-WARM VOICES BUG FIX: Forces browser to load voices immediately instead of waiting for the first click
+  // PRE-WARM VOICES BUG FIX: Forces browser to load voices immediately
   useEffect(() => {
     if (typeof window !== "undefined" && 'speechSynthesis' in window) {
       const loadVoices = () => window.speechSynthesis.getVoices();
@@ -68,6 +68,18 @@ export default function NewsCard({ article, index, onArticleClick }) {
       }
     }
   }, []);
+
+  // GLOBAL AUDIO CONFLICT FIX: Listen for custom event to stop reading if another card starts
+  useEffect(() => {
+    const handleGlobalStopAudio = (e) => {
+      // If the event detail ID doesn't match this article's ID, stop speaking
+      if (e.detail !== article?.id && speaking) {
+        setSpeaking(false);
+      }
+    };
+    window.addEventListener("stop-other-audio", handleGlobalStopAudio);
+    return () => window.removeEventListener("stop-other-audio", handleGlobalStopAudio);
+  }, [speaking, article?.id]);
 
   const profId = parseInt(article?.professor_id) || 1;
   const fullName = getProfName(profId);
@@ -94,6 +106,8 @@ export default function NewsCard({ article, index, onArticleClick }) {
       return;
     }
 
+    // Stop any other card currently reading before starting this one
+    window.dispatchEvent(new CustomEvent("stop-other-audio", { detail: article?.id }));
     window.speechSynthesis.cancel();
 
     const textToSpeak = `${article?.ai_headline || article?.title || ""}. ${article?.summary || ""}`;
@@ -209,7 +223,6 @@ export default function NewsCard({ article, index, onArticleClick }) {
         
         <p>{getTruncatedSummary(article?.summary)}</p>
 
-        {/* Updated Button Block matching the screenshot UI */}
         <div className="card-bottom" style={{ display: "flex", gap: "10px", flexWrap: "wrap", alignItems: "center", marginTop: "auto", paddingTop: "15px" }}>
           
           <button 

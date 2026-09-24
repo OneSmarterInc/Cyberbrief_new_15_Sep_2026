@@ -314,26 +314,28 @@ export default function RssFeedPage({ articles, onBack }) {
           box-shadow: 0 8px 25px rgba(0,0,0,0.08);
         }
 
+        /* FIXED IMAGE WRAPPER WITH SOLID BLACK BACKGROUND & OBJECT-FIT CONTAIN */
         .rss-article-img-wrapper {
           width: 380px;
           min-width: 380px;
-          padding: 25px;
+          height: 260px;
+          background-color: #000000;
+          flex-shrink: 0;
           display: flex;
           align-items: center;
           justify-content: center;
-          background-color: #0b1a13;
-          flex-shrink: 0;
+          overflow: hidden;
         }
 
         .rss-article-img-wrapper img {
           width: 100%;
-          height: 240px;
+          height: 100%;
           object-fit: contain;
-          border-radius: 4px;
+          object-position: center center;
         }
 
         .rss-article-content {
-          padding: 30px 40px 30px 20px;
+          padding: 30px 40px 30px 30px;
           flex: 1;
           display: flex;
           flex-direction: column;
@@ -385,13 +387,24 @@ export default function RssFeedPage({ articles, onBack }) {
           position: relative;
           width: 100%;
           height: 450px;
-          background-color: #111;
+          background-color: #000000;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          overflow: hidden;
+        }
+
+        .rss-detail-hero img {
+          width: 100%;
+          height: 100%;
+          object-fit: contain;
+          object-position: center center;
         }
 
         .rss-detail-overlay {
           position: absolute;
           bottom: 0; left: 0; right: 0;
-          background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.5) 60%, transparent 100%);
+          background: linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.7) 50%, rgba(0,0,0,0.2) 80%, transparent 100%);
           padding: 50px 40px 30px 40px;
           display: flex;
           flex-direction: column;
@@ -400,11 +413,12 @@ export default function RssFeedPage({ articles, onBack }) {
 
         .rss-detail-title {
           font-family: Georgia, serif;
-          font-size: 36px;
+          font-size: 26px;
           color: #F3EEE3;
           margin: 0 0 20px 0;
           line-height: 1.25;
           font-weight: bold;
+          text-shadow: 0 2px 4px rgba(0,0,0,0.6);
         }
 
         .rss-detail-actions {
@@ -443,8 +457,7 @@ export default function RssFeedPage({ articles, onBack }) {
         /* Breakpoints */
         @media (max-width: 900px) {
           .rss-detail-hero { height: 350px; }
-          .rss-article-img-wrapper { width: 280px; min-width: 280px; padding: 15px; }
-          .rss-article-img-wrapper img { height: 200px; }
+          .rss-article-img-wrapper { width: 280px; min-width: 280px; height: 220px; }
         }
 
         @media (max-width: 768px) {
@@ -452,8 +465,7 @@ export default function RssFeedPage({ articles, onBack }) {
           
           /* Cards stack to columns */
           .rss-article-card { flex-direction: column; }
-          .rss-article-img-wrapper { width: 100%; min-width: 100%; padding: 15px; height: 200px; }
-          .rss-article-img-wrapper img { height: 100%; object-fit: cover; }
+          .rss-article-img-wrapper { width: 100%; min-width: 100%; height: 220px; }
           .rss-article-content { padding: 20px; }
           .rss-article-content h3 { font-size: 20px !important; margin-bottom: 10px !important; }
           
@@ -464,7 +476,7 @@ export default function RssFeedPage({ articles, onBack }) {
           /* Details shrink */
           .rss-detail-hero { height: 280px; }
           .rss-detail-overlay { padding: 30px 20px 20px 20px; }
-          .rss-detail-title { font-size: 24px; margin-bottom: 15px; }
+          .rss-detail-title { font-size: 20px; margin-bottom: 15px; }
           
           /* Actions stack */
           .rss-detail-actions { flex-direction: column; align-items: stretch; gap: 15px; }
@@ -530,7 +542,6 @@ export default function RssFeedPage({ articles, onBack }) {
                     <img 
                       src={displayImage} 
                       alt={getProfName(selectedArticle.professor_id)} 
-                      style={{ width: "100%", height: "100%", objectFit: "cover" }} 
                     />
                     
                     <div className="rss-detail-overlay">
@@ -717,21 +728,21 @@ export default function RssFeedPage({ articles, onBack }) {
                           style={{ 
                             textDecoration: "none", 
                             color: "#161412", 
-                            fontSize: "24px", 
+                            fontSize: "22px", 
                             fontFamily: "Georgia, serif", 
                             fontWeight: "bold", 
                             lineHeight: "1.3", 
-                            margin: "0 0 12px 0"
+                            margin: "0 0 10px 0"
                           }}
                         >
                           {article.original_title || article.title}
                         </h3>
                         
-                        <div style={{ fontSize: "14px", color: "#8F7118", fontWeight: "bold", marginBottom: "15px" }}>
+                        <div style={{ fontSize: "13px", color: "#8F7118", fontWeight: "bold", marginBottom: "12px" }}>
                           {article.published || "Recent"} • {getProfName(article.professor_id).toUpperCase()}
                         </div>
                         
-                        <p style={{ fontSize: "16px", color: "#5E574C", lineHeight: "1.6", margin: 0 }}>
+                        <p style={{ fontSize: "15px", color: "#5E574C", lineHeight: "1.6", margin: 0 }}>
                           {article.summary 
                             ? (article.summary.length > 300 ? article.summary.substring(0, 300) + "..." : article.summary) 
                             : "No summary available for this article."}

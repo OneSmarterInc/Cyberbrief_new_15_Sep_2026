@@ -350,12 +350,64 @@ export default function HomeFeed({
             </div>
           )}
 
-          <div style={{ position: "relative", width: "100%", height: "450px", backgroundColor: "#111" }}>
-            <img src={displayImage} alt={getProfName(selectedArticle.professor_id)} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center 15%" }} />
-            <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: "linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.5) 60%, transparent 100%)", padding: "50px 40px 30px 40px", display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
-              <h1 style={{ fontFamily: "Georgia, serif", fontSize: "36px", color: "#F3EEE3", margin: "0 0 20px 0", lineHeight: "1.25", fontWeight: "bold" }}>{selectedArticle.ai_headline || selectedArticle.title}</h1>
+          {/* REFINED HERO IMAGE CONTAINER WITH PROPER SCALING & OBJECT-FIT CONTAIN + SOLID BLACK BACKGROUND */}
+          <style>{`
+            .hero-img-container {
+              position: relative;
+              width: 100%;
+              height: 480px;
+              background-color: #000000;
+              overflow: hidden;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+            }
+            .hero-img {
+              width: 100%;
+              height: 100%;
+              object-fit: contain;
+              object-position: center center;
+            }
+            .hero-text-overlay {
+              position: absolute;
+              bottom: 0;
+              left: 0;
+              right: 0;
+              background: linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.7) 50%, rgba(0,0,0,0.2) 80%, transparent 100%);
+              padding: 40px 30px 25px 30px;
+              display: flex;
+              flex-direction: column;
+              justify-content: flex-end;
+            }
+            .hero-title {
+              font-family: Georgia, serif;
+              font-size: 26px;
+              color: #F3EEE3;
+              margin: 0 0 15px 0;
+              line-height: 1.25;
+              font-weight: bold;
+              text-shadow: 0 2px 4px rgba(0,0,0,0.6);
+            }
+            @media (max-width: 768px) {
+              .hero-img-container {
+                height: 320px;
+              }
+              .hero-title {
+                font-size: 20px;
+                margin-bottom: 12px;
+              }
+              .hero-text-overlay {
+                padding: 30px 15px 20px 15px;
+              }
+            }
+          `}</style>
+
+          <div className="hero-img-container">
+            <img src={displayImage} alt={getProfName(selectedArticle.professor_id)} className="hero-img" />
+            <div className="hero-text-overlay">
+              <h1 className="hero-title">{selectedArticle.ai_headline || selectedArticle.title}</h1>
               <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                <div style={{ width: "36px", height: "36px", borderRadius: "50%", backgroundColor: avatarColor, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: "bold", fontSize: "16px", border: "2px solid #F3EEE3" }}>
+                <div style={{ width: "36px", height: "36px", borderRadius: "50%", backgroundColor: avatarColor, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: "bold", fontSize: "16px", border: "2px solid #F3EEE3", flexShrink: 0 }}>
                   {sourceName.charAt(0).toUpperCase()}
                 </div>
                 <div>
@@ -365,7 +417,15 @@ export default function HomeFeed({
               </div>
             </div>
           </div>
-          <div style={{ padding: "40px" }}>
+
+          <div style={{ padding: "40px" }} className="hero-body-padding">
+            <style>{`
+              @media (max-width: 768px) {
+                .hero-body-padding {
+                  padding: 20px !important;
+                }
+              }
+            `}</style>
             <p style={{ fontSize: "18px", color: "#161412", lineHeight: "1.8", margin: "0 0 50px 0", fontFamily: "Arial, sans-serif" }}>{selectedArticle.summary || "No summary is available for this article at this time. Click the original article link below to read the full coverage."}</p>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid #C9C1B0", paddingTop: "25px", flexWrap: "wrap", gap: "20px" }}>
               
@@ -447,7 +507,6 @@ export default function HomeFeed({
         <style>{`
           .layout-container { flex-direction: row; align-items: flex-start; }
           
-          /* Added margin-top here to push The Wire box away from the navbar */
           .wire-sidebar { width: 420px; flex-shrink: 0; margin-top: 25px; }
           
           .page-content { flex: 1; min-width: 0; }
@@ -475,7 +534,7 @@ export default function HomeFeed({
           }
           @media (max-width: 1024px) {
             .layout-container { flex-direction: column; }
-            .wire-sidebar { width: 100%; margin-top: 15px; } /* Slightly less margin when stacked on mobile */
+            .wire-sidebar { width: 100%; margin-top: 15px; }
             .most-covered-grid { grid-template-columns: repeat(2, 1fr); }
           }
           @media (max-width: 768px) {

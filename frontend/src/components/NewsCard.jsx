@@ -238,14 +238,14 @@ export default function NewsCard({ article, index, onArticleClick }) {
       >
         {modal.show && (
           <div 
-            onClick={(e) => e.stopPropagation()} 
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); }} 
             style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 20, padding: "20px" }}
           >
             <div style={{ backgroundColor: "#F3EEE3", border: "2px solid #161412", padding: "25px", maxWidth: "350px", width: "100%", boxSizing: "border-box", boxShadow: "0 10px 25px rgba(0,0,0,0.2)", borderRadius: "4px", textAlign: "left", cursor: "default" }}>
               <h3 style={{ fontFamily: "Georgia, serif", margin: "0 0 10px 0", color: "#161412", fontSize: "17px" }}>{modal.title}</h3>
               <p style={{ fontSize: "13px", color: "#5E574C", lineHeight: "1.5", marginBottom: "20px" }}>{modal.message}</p>
               <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                <button onClick={() => setModal({ show: false })} style={{ padding: "6px 16px", backgroundColor: "#161412", color: "#F3EEE3", border: "none", fontWeight: "bold", cursor: "pointer", fontSize: "11px" }}>OK</button>
+                <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setModal({ show: false }); }} style={{ padding: "6px 16px", backgroundColor: "#161412", color: "#F3EEE3", border: "none", fontWeight: "bold", cursor: "pointer", fontSize: "11px" }}>OK</button>
               </div>
             </div>
           </div>
@@ -268,11 +268,16 @@ export default function NewsCard({ article, index, onArticleClick }) {
           
           <p>{getTruncatedSummary(article?.summary)}</p>
 
-          <div className="card-bottom" style={{ display: "flex", gap: "10px", flexWrap: "wrap", alignItems: "center", marginTop: "auto", paddingTop: "15px" }}>
+          {/* ADDED zIndex: 2 to ensure buttons are strictly on top of the card's click area */}
+          <div className="card-bottom" style={{ display: "flex", gap: "10px", flexWrap: "wrap", alignItems: "center", marginTop: "auto", paddingTop: "15px", position: "relative", zIndex: 2 }}>
             
             <button 
               className={`listen ${speaking ? "active" : ""}`} 
-              onClick={(e) => { e.stopPropagation(); handleListen(); }}
+              onClick={(e) => { 
+                e.preventDefault(); 
+                e.stopPropagation(); 
+                handleListen(); 
+              }}
               style={{ 
                 backgroundColor: speaking ? "#161412" : "transparent", 
                 color: speaking ? "#F3EEE3" : "#161412", 
@@ -293,7 +298,11 @@ export default function NewsCard({ article, index, onArticleClick }) {
             
             <button 
               className="read" 
-              onClick={(e) => { e.stopPropagation(); setShowModal(true); }} 
+              onClick={(e) => { 
+                e.preventDefault(); 
+                e.stopPropagation(); 
+                setShowModal(true); 
+              }} 
               style={{ 
                 backgroundColor: "#EBE4D5", 
                 color: "#161412", 
@@ -314,7 +323,11 @@ export default function NewsCard({ article, index, onArticleClick }) {
 
             <button 
               className="read" 
-              onClick={(e) => { e.stopPropagation(); handleCardClick(); }} 
+              onClick={(e) => { 
+                e.preventDefault(); 
+                e.stopPropagation(); 
+                handleCardClick(); 
+              }} 
               style={{ 
                 marginLeft: "auto", 
                 background: "transparent", 
@@ -337,7 +350,7 @@ export default function NewsCard({ article, index, onArticleClick }) {
 
         {showModal && (
           <div 
-            onClick={(e) => e.stopPropagation()} 
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); }} 
             style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(22,20,18,0.9)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 10, padding: "20px", cursor: "default" }}
           >
             <div style={{ backgroundColor: "#F3EEE3", padding: "30px", width: "100%", maxWidth: "400px", border: "2px solid #C9A227", borderRadius: "4px", boxSizing: "border-box" }}>
@@ -353,13 +366,13 @@ export default function NewsCard({ article, index, onArticleClick }) {
               
               <div style={{ display: "flex", justifyContent: "space-between" }}>
                 <button 
-                  onClick={(e) => { e.stopPropagation(); setShowModal(false); }} 
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowModal(false); }} 
                   style={{ padding: "8px 15px", border: "none", background: "transparent", cursor: "pointer", fontWeight: "bold", color: "#5E574C" }}
                 >
                   CANCEL
                 </button>
                 <button 
-                  onClick={(e) => { e.stopPropagation(); submitQuery(); }} 
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); submitQuery(); }} 
                   disabled={submitStatus === "loading" || !queryText.trim()}
                   style={{ padding: "8px 15px", border: "none", background: "#161412", color: "#F3EEE3", cursor: "pointer", fontWeight: "bold", borderRadius: "3px" }}
                 >

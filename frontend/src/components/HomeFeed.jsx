@@ -212,11 +212,16 @@ export default function HomeFeed({
       let genderFilteredVoices = englishVoices.filter(v => {
         const name = v.name.toLowerCase();
         if (profile.gender === "female") {
-          return name.includes("female") || /zira|samantha|karen|victoria|moira|susan|hazel|amelia|olivia/i.test(name);
+          return name.includes("female") || /zira|samantha|karen|victoria|moira|susan|hazel|amelia|olivia|tessa|ava|siri|melina|veena/i.test(name);
         } else {
-          return name.includes("male") || /david|mark|george|daniel|oliver|james|ryan|arthur/i.test(name);
+          return name.includes("male") || /david|mark|george|daniel|oliver|james|ryan|arthur|alex|fred|bruce|albert|aaron|eddy|floyd|reed|rocko/i.test(name);
         }
       });
+
+      // MOBILE FALLBACK: If we want a male voice but the phone only has female voices available
+      if (genderFilteredVoices.length === 0 && profile.gender === "male") {
+        utterance.pitch = Math.max(0.1, profile.pitch - 0.4); 
+      }
 
       let pool = genderFilteredVoices.length > 0 ? genderFilteredVoices : englishVoices;
       if (pool.length > 0) {
@@ -267,11 +272,16 @@ export default function HomeFeed({
       let genderFilteredVoices = englishVoices.filter(v => {
         const name = v.name.toLowerCase();
         if (profile.gender === "female") {
-          return name.includes("female") || /zira|samantha|karen|victoria|moira|susan|hazel|amelia|olivia/i.test(name);
+          return name.includes("female") || /zira|samantha|karen|victoria|moira|susan|hazel|amelia|olivia|tessa|ava|siri|melina|veena/i.test(name);
         } else {
-          return name.includes("male") || /david|mark|george|daniel|oliver|james|ryan|arthur/i.test(name);
+          return name.includes("male") || /david|mark|george|daniel|oliver|james|ryan|arthur|alex|fred|bruce|albert|aaron|eddy|floyd|reed|rocko/i.test(name);
         }
       });
+
+      // MOBILE FALLBACK: If we want a male voice but the phone only has female voices available
+      if (genderFilteredVoices.length === 0 && profile.gender === "male") {
+        utterance.pitch = Math.max(0.1, profile.pitch - 0.4); 
+      }
 
       let pool = genderFilteredVoices.length > 0 ? genderFilteredVoices : englishVoices;
       if (pool.length > 0) {

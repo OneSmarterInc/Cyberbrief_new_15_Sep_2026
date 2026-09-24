@@ -84,6 +84,33 @@ export default function Navbar({
     navigate(path);
   };
 
+  // SMART SCROLL TO NEWSROOM FEATURE
+  const scrollToNewsroom = (e) => {
+    e.preventDefault();
+    setDrawerOpen(false);
+    
+    const triggerScroll = () => {
+      // Look for the "Meet the Newsroom" heading block dynamically
+      const headings = Array.from(document.querySelectorAll('h2'));
+      const newsroomHeading = headings.find(h => h.textContent.includes('Meet the Newsroom') || h.textContent.includes('Newsroom'));
+      
+      if (newsroomHeading) {
+        newsroomHeading.scrollIntoView({ behavior: "smooth", block: "start" });
+      } else {
+        // Fallback: Scroll near the bottom of the page
+        window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+      }
+    };
+
+    // If we are not on the homepage, route to homepage first, then scroll
+    if (window.location.pathname !== "/" && window.location.pathname !== "") {
+      goHome();
+      setTimeout(triggerScroll, 400); // Give React time to render the homepage
+    } else {
+      triggerScroll(); // Already on homepage, scroll immediately
+    }
+  };
+
   const submitSearch = (event) => {
     event.preventDefault();
     if (!search.trim()) return;
@@ -263,7 +290,24 @@ export default function Navbar({
         .side-drawer-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); z-index: 9998; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
         .side-drawer-overlay.open { opacity: 1; pointer-events: auto; }
  
-        .side-drawer { position: fixed; top: 0; left: -320px; width: 290px; height: 100vh; background: #161412; color: #F3EEE3; z-index: 9999; transition: left 0.3s ease; padding: 35px 25px; box-shadow: 5px 0 15px rgba(0,0,0,0.5); display: flex; flex-direction: column; overflow-y: auto; }
+        /* SIDE DRAWER FIX: 100dvh prevents clipping on mobile browser UI */
+        .side-drawer { 
+          position: fixed; 
+          top: 0; 
+          left: -320px; 
+          width: 290px; 
+          height: 100vh; /* Fallback */
+          height: 100dvh; /* Dynamic Viewport for Mobile */
+          background: #161412; 
+          color: #F3EEE3; 
+          z-index: 9999; 
+          transition: left 0.3s ease; 
+          padding: 35px 25px 40px 25px; /* Added extra bottom padding */
+          box-shadow: 5px 0 15px rgba(0,0,0,0.5); 
+          display: flex; 
+          flex-direction: column; 
+          overflow-y: auto; 
+        }
         .side-drawer.open { left: 0; }
         .drawer-close { align-self: flex-end; background: transparent; border: none; color: #C9C1B0; font-size: 22px; cursor: pointer; padding: 0; margin-bottom: 30px; transition: color 0.2s; }
         .drawer-close:hover { color: #C9A227; }
@@ -273,33 +317,45 @@ export default function Navbar({
  
         /* RESPONSIVE BREAKPOINTS */
         @media (max-width: 980px) {
-          .aggregate-briefing-inner { grid-template-columns: 1fr; gap: 20px; }
-          .aggregate-player-container { max-width: 100%; }
+          .aggregate-briefing-inner { grid-template-columns: 1fr; gap: 15px; }
+          .aggregate-player-container { max-width: 100%; gap: 6px; }
         }
         
         @media (max-width: 760px) {
-          .aggregate-topbar { padding: 10px 15px; flex-direction: column; align-items: flex-start; gap: 10px; }
-          .aggregate-top-left { font-size: 12px; width: 100%; align-items: flex-start; }
-          .hamburger-icon { margin-top: 2px; } /* Aligns perfectly with wrapped text */
+          /* Force single line topbar */
+          .aggregate-topbar { padding: 4px 12px; min-height: 30px; flex-wrap: nowrap; }
+          .aggregate-top-left { font-size: 11px; align-items: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; width: 100%; flex-wrap: nowrap; gap: 5px; padding: 0; }
+          .aggregate-top-left-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+          .hamburger-icon { padding-right: 5px; margin: 0; font-size: 18px; } 
           .aggregate-top-right { display: none; }
           
-          .aggregate-masthead { padding: 15px; }
-          .aggregate-brand { font-size: clamp(28px, 8vw, 44px); letter-spacing: -1.5px; }
+          /* Compact Masthead */
+          .aggregate-masthead { padding: 8px 15px; }
+          .aggregate-brand { font-size: clamp(24px, 7vw, 36px); letter-spacing: -1px; }
+          .aggregate-logo-img { width: 30px; height: 30px; }
           
-          .aggregate-briefing-title { font-size: 21px; }
-          .aggregate-briefing-summary { font-size: 14px; }
+          /* Compact Briefing Texts */
+          .aggregate-briefing { padding: 10px 0; }
+          .aggregate-briefing-inner { gap: 12px; }
+          .aggregate-briefing-label { margin-bottom: 0px; font-size: 10px; }
+          .aggregate-briefing-title { font-size: 18px; margin: 2px 0; line-height: 1.2; }
+          .aggregate-briefing-summary { font-size: 12px; line-height: 1.35; margin-bottom: 4px; }
           
-          .action-buttons-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: 100%; }
-          .action-btn { width: 100%; padding: 10px; }
+          /* Compact Player & Buttons */
+          .aggregate-player { min-height: 32px; padding: 4px 8px; }
+          .aggregate-play { width: 24px; height: 24px; font-size: 10px; }
+          
+          form.search-form { height: 32px !important; margin-top: 4px; }
+          form.search-form input[type="search"] { padding: 0 10px !important; font-size: 13px !important; }
+          form.search-form button[type="submit"] { padding: 0 12px !important; font-size: 11px !important; }
+
+          .action-buttons-row { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 0; }
+          .action-btn { padding: 6px; font-size: 9.5px; width: 100%; min-width: 0; }
         }
 
         @media (max-width: 480px) {
-          .aggregate-player-main { flex-direction: column; align-items: flex-start; gap: 6px; }
+          .aggregate-player-main { flex-direction: row; align-items: center; gap: 8px; }
           .aggregate-progress { width: 100%; }
-          .action-buttons-row { grid-template-columns: 1fr; }
-          
-          form input[type="search"] { padding: 0 10px; font-size: 14px; }
-          form button[type="submit"] { padding: 0 12px; }
         }
 
         @media (prefers-reduced-motion: reduce) {
@@ -317,16 +373,17 @@ export default function Navbar({
       <div className={`side-drawer ${drawerOpen ? "open" : ""}`}>
         <button className="drawer-close" onClick={() => setDrawerOpen(false)}>✕</button>
         <a className="drawer-link" onClick={goHome}>Home</a>
+        <a className="drawer-link" onClick={scrollToNewsroom}>Newsroom</a>
         <a className="drawer-link" onClick={(e) => handleNavClick(e, "/rss", onRss)}>RSS Feed</a>
         <a className="drawer-link" onClick={(e) => handleNavClick(e, "/how", onAbout)}>About the desk</a>
         <a className="drawer-link" onClick={(e) => handleNavClick(e, "/blogs", onBlogs)}>Blogs</a>
         <a className="drawer-link" onClick={(e) => handleNavClick(e, "/books", onBooks)}>Books</a>
         <a className="drawer-link" onClick={(e) => handleNavClick(e, "/join", null)}>Careers</a>
         
-        <div style={{ marginTop: "auto", paddingTop: "18px" }}>
+        <div style={{ marginTop: "auto", paddingTop: "30px", paddingBottom: "20px" }}>
           <button 
             className="aggregate-subscribe" 
-            style={{ width: "100%", padding: "12px", fontSize: "15px" }} 
+            style={{ width: "100%", padding: "14px", fontSize: "16px" }} 
             onClick={(e) => { e.preventDefault(); setDrawerOpen(false); if (onSubscribe) onSubscribe(); }}
           >
             Subscribe
@@ -393,13 +450,13 @@ export default function Navbar({
                     }} 
                   />
                 </div>
-                <div style={{ fontSize: "12px", color: "#5E574C", fontWeight: "bold", whiteSpace: "nowrap", fontFamily: "Arial, sans-serif" }}>
+                <div style={{ fontSize: "11.5px", color: "#5E574C", fontWeight: "bold", whiteSpace: "nowrap", fontFamily: "Arial, sans-serif" }}>
                   {formatTimeSeconds(currentTime)} / {duration ? formatTimeSeconds(duration) : "0:00"}
                 </div>
               </div>
             </div>
 
-            <form onSubmit={submitSearch} style={{ display: "flex", height: "38px", width: "100%" }}>
+            <form className="search-form" onSubmit={submitSearch} style={{ display: "flex", height: "38px", width: "100%" }}>
               <input 
                 type="search" 
                 value={search} 

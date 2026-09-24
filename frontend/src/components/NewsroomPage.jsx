@@ -61,6 +61,10 @@ export default function NewsroomPage({ articles, onBack, onArticleClick }) {
   const [profId, setProfId] = useState(1);
   const [speakingArticleId, setSpeakingArticleId] = useState(null);
 
+  // States for Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
+
   // States for Submit Query on the Newsroom Page
   const [queryArticle, setQueryArticle] = useState(null);
   const [queryText, setQueryText] = useState("");
@@ -81,6 +85,7 @@ export default function NewsroomPage({ articles, onBack, onArticleClick }) {
     const params = new URLSearchParams(window.location.search);
     const prof = parseInt(params.get("prof")) || 1;
     setProfId(prof);
+    setCurrentPage(1); // Reset to page 1 when changing professors
     window.scrollTo({ top: 0, behavior: "smooth" });
 
     return () => {
@@ -88,11 +93,25 @@ export default function NewsroomPage({ articles, onBack, onArticleClick }) {
         window.speechSynthesis.cancel();
       }
     };
-  }, []);
+  }, [window.location.search]); // Depend on search params
 
   const profArticles = useMemo(() => {
     return articles.filter(a => (a.professor_id || 1) === profId);
   }, [articles, profId]);
+
+  // Pagination Logic
+  const totalPages = Math.ceil(profArticles.length / ITEMS_PER_PAGE);
+  const currentArticles = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    return profArticles.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [profArticles, currentPage]);
+
+  const handlePageChange = (newPage) => {
+    if (newPage >= 1 && newPage <= totalPages) {
+      setCurrentPage(newPage);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
 
   const submitQuery = async () => {
     if (!queryText.trim() || !queryArticle?.id) return;
@@ -150,11 +169,16 @@ export default function NewsroomPage({ articles, onBack, onArticleClick }) {
       let genderFilteredVoices = englishVoices.filter(v => {
         const name = v.name.toLowerCase();
         if (profile.gender === "female") {
-          return name.includes("female") || /zira|samantha|karen|victoria|moira|susan|hazel|amelia|olivia/i.test(name);
+          return name.includes("female") || /zira|samantha|karen|victoria|moira|susan|hazel|amelia|olivia|tessa|ava|siri|melina|veena/i.test(name);
         } else {
-          return name.includes("male") || /david|mark|george|daniel|oliver|james|ryan|arthur/i.test(name);
+          return name.includes("male") || /david|mark|george|daniel|oliver|james|ryan|arthur|alex|fred|bruce|albert|aaron|eddy|floyd|reed|rocko/i.test(name);
         }
       });
+
+      // Mobile Fallback for Male Voices
+      if (genderFilteredVoices.length === 0 && profile.gender === "male") {
+        utterance.pitch = Math.max(0.1, profile.pitch - 0.4); 
+      }
 
       let pool = genderFilteredVoices.length > 0 ? genderFilteredVoices : englishVoices;
       if (pool.length > 0) {
@@ -299,6 +323,45 @@ export default function NewsroomPage({ articles, onBack, onArticleClick }) {
           box-sizing: border-box;
         }
 
+        /* Pagination */
+        .pagination-container {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-top: 50px;
+          padding-top: 30px;
+          border-top: 2px solid #161412;
+          flex-wrap: wrap;
+          gap: 15px;
+        }
+
+        .page-btn {
+          padding: 12px 24px;
+          border: none;
+          font-weight: bold;
+          transition: all 0.2s;
+        }
+
+        .page-btn:not(:disabled) {
+          background-color: #161412;
+          color: #F3EEE3;
+          cursor: pointer;
+        }
+
+        .page-btn:disabled {
+          background-color: #EBE4D5;
+          color: #A39E93;
+          cursor: not-allowed;
+        }
+
+        .page-indicator {
+          font-size: 14px;
+          font-weight: bold;
+          color: #5E574C;
+          letter-spacing: 1px;
+          text-align: center;
+        }
+
         /* Responsive Breakpoints */
         @media (max-width: 900px) {
           .newsroom-hero-img { height: 400px; }
@@ -322,10 +385,15 @@ export default function NewsroomPage({ articles, onBack, onArticleClick }) {
           .article-author-tag { text-align: center; margin-top: 5px; }
           
           .app-modal-content { padding: 20px; }
+
+          /* Responsive Pagination */
+          .pagination-container { flex-direction: column; align-items: stretch; }
+          .page-btn { width: 100%; }
+          .page-indicator { margin: 10px 0; }
         }
       `}</style>
 
-      {/* Submit Query Modal logic added here */}
+      {/* Submit Query Modal */}
       {queryArticle && (
         <div className="app-modal-overlay" onClick={(e) => { e.stopPropagation(); setQueryArticle(null); }}>
           <div className="app-modal-content" onClick={e => e.stopPropagation()}>
@@ -397,8 +465,8 @@ export default function NewsroomPage({ articles, onBack, onArticleClick }) {
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: "35px" }}>
-          {profArticles.length > 0 ? (
-            profArticles.map(article => (
+          {currentArticles.length > 0 ? (
+            currentArticles.map(article => (
               <div 
                 key={article.id} 
                 onClick={() => onArticleClick(article)}
@@ -420,9 +488,8 @@ export default function NewsroomPage({ articles, onBack, onArticleClick }) {
                     {article.summary ? article.summary.substring(0, 180) + "..." : "Summary unavailable."}
                   </p>
                   
-                  {/* Updated Bottom Row: Listen & Submit Query Buttons */}
+                  {/* Action Buttons */}
                   <div className="article-actions">
-                    
                     <div className="article-btn-group">
                       <button 
                         className="article-btn"
@@ -451,7 +518,6 @@ export default function NewsroomPage({ articles, onBack, onArticleClick }) {
                     <div className="article-author-tag">
                       BY {getProfName(profId).toUpperCase()}, CORRESPONDENT
                     </div>
-
                   </div>
                 </div>
               </div>
@@ -462,6 +528,29 @@ export default function NewsroomPage({ articles, onBack, onArticleClick }) {
             </div>
           )}
         </div>
+
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <div className="pagination-container">
+            <button 
+              onClick={() => handlePageChange(currentPage - 1)} 
+              disabled={currentPage === 1} 
+              className="page-btn"
+            >
+              &larr; PREVIOUS
+            </button>
+            <span className="page-indicator">
+              PAGE {currentPage} OF {totalPages}
+            </span>
+            <button 
+              onClick={() => handlePageChange(currentPage + 1)} 
+              disabled={currentPage === totalPages} 
+              className="page-btn"
+            >
+              NEXT &rarr;
+            </button>
+          </div>
+        )}
 
       </div>
     </div>

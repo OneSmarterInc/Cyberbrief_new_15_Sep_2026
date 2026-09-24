@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { API_BASE_URL } from "../config";
-import { cleanSummary } from "../utils/summaryFilter";
+import { cleanSummary, isValidArticle } from "../utils/summaryFilter";
 
 const PROF_NAMES = [
   "Arion Vale", "Lyra Sen", "Kael Nore", "Elara Quinn", 
@@ -50,8 +50,8 @@ const getRelativeTime = (dateString) => {
 };
 
 export default function NewsCard({ article, index, onArticleClick }) {
-  // CRASH PREVENTION
-  if (!article) return null;
+  // CRASH PREVENTION & STRICT VALIDATION CHECK
+  if (!article || !isValidArticle(article)) return null;
 
   const [speaking, setSpeaking] = useState(false);
   const [showModal, setShowModal] = useState(false);

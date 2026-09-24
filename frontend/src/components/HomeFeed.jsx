@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import NewsCard from "./NewsCard";
 import TheWire from "./TheWire";
 import { API_BASE_URL } from "../config";
-import { cleanSummary } from "../utils/summaryFilter";
+import { cleanSummary, isValidArticle } from "../utils/summaryFilter";
 
 const PROF_NAMES = [
   "Arion Vale", "Lyra Sen", "Kael Nore", "Elara Quinn", 
@@ -73,6 +73,15 @@ export default function HomeFeed({
   const [showQueryModal, setShowQueryModal] = useState(false);
   const [queryText, setQueryText] = useState("");
   const [submitStatus, setSubmitStatus] = useState(null);
+
+  // Filter out invalid/short/looped articles completely from current feed items
+  const validArticles = useMemo(() => {
+    return (currentArticles || []).filter(isValidArticle);
+  }, [currentArticles]);
+
+  const mainArticles = validArticles.slice(0, 3);
+  const morningArticles = validArticles.slice(3, 6);
+  const briefArticles = validArticles.slice(6, 14);
 
   useEffect(() => {
     if (typeof window !== "undefined" && 'speechSynthesis' in window) {
@@ -300,10 +309,6 @@ export default function HomeFeed({
 
     window.speechSynthesis.speak(utterance);
   };
-
-  const mainArticles = currentArticles.slice(0, 3);
-  const morningArticles = currentArticles.slice(3, 6);
-  const briefArticles = currentArticles.slice(6, 14);
 
   if (selectedArticle) {
     const displayImage = getArticleImage(selectedArticle);
@@ -569,8 +574,8 @@ export default function HomeFeed({
             </div>
           ) : (
             <section className="news-list">
-              {currentArticles.length === 0 ? (
-                <div className="state"><p>{searchQuery ? "No stories match your search." : "No stories in this category."}</p></div>
+              {validArticles.length === 0 ? (
+                <div className="state"><p>{searchQuery ? "No valid stories match your search." : "No valid stories in this category."}</p></div>
               ) : (
                 <>
                   {mainArticles.map((article, index) => (

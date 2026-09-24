@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { API_BASE_URL } from "../config";
-import { cleanSummary } from "../utils/summaryFilter";
+import { cleanSummary, isValidArticle } from "../utils/summaryFilter";
 
 const feedImages = [
   "/images/Feed_1.jpg", "/images/Feed_2.jpg", "/images/Feed_3.jpg",
@@ -48,6 +48,11 @@ export default function RssFeedPage({ articles, onBack }) {
   const [queryArticle, setQueryArticle] = useState(null);
   const [queryText, setQueryText] = useState("");
   const [submitStatus, setSubmitStatus] = useState(null);
+
+  // Filter out invalid/short articles from global article array
+  const validArticles = useMemo(() => {
+    return (articles || []).filter(isValidArticle);
+  }, [articles]);
 
   useEffect(() => {
     // Fetch all feeds from database
@@ -97,20 +102,20 @@ export default function RssFeedPage({ articles, onBack }) {
   }, [speakingArticleId]);
 
   const selectedArticle = useMemo(() => {
-    if (!selectedArticleId || !articles) return null;
-    return articles.find(a => String(a.id) === String(selectedArticleId)) || null;
-  }, [articles, selectedArticleId]);
+    if (!selectedArticleId || !validArticles) return null;
+    return validArticles.find(a => String(a.id) === String(selectedArticleId)) || null;
+  }, [validArticles, selectedArticleId]);
 
   // Combine database sources and article sources, counting news volume, and sorting highest stories first
   const uniqueSources = useMemo(() => {
     const sourceCounts = {};
-    articles.forEach(a => {
+    validArticles.forEach(a => {
       if (a.source) {
         sourceCounts[a.source] = (sourceCounts[a.source] || 0) + 1;
       }
     });
 
-    const allSourceNames = Array.from(new Set([...dbSources, ...articles.map(a => a.source).filter(Boolean)]));
+    const allSourceNames = Array.from(new Set([...dbSources, ...validArticles.map(a => a.source).filter(Boolean)]));
 
     // Sort descending by article count (sources with the highest stories first)
     return allSourceNames.sort((a, b) => {
@@ -121,12 +126,12 @@ export default function RssFeedPage({ articles, onBack }) {
       }
       return a.localeCompare(b); // Alphabetical fallback if counts match
     });
-  }, [dbSources, articles]);
+  }, [dbSources, validArticles]);
 
   const sourceArticles = useMemo(() => {
     if (!selectedSource) return [];
     
-    return articles.filter(a => {
+    return validArticles.filter(a => {
       if (a.source !== selectedSource) return false;
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
@@ -138,7 +143,7 @@ export default function RssFeedPage({ articles, onBack }) {
       }
       return true;
     });
-  }, [articles, selectedSource, searchQuery]);
+  }, [validArticles, selectedSource, searchQuery]);
 
   const handleBack = () => {
     if ('speechSynthesis' in window) window.speechSynthesis.cancel();
@@ -707,7 +712,7 @@ export default function RssFeedPage({ articles, onBack }) {
 
             <div style={{ display: "flex", flexDirection: "column", gap: "35px" }}>
               {sourceArticles.length === 0 ? (
-                <p style={{ textAlign: "center", color: "#5E574C", fontSize: "18px", marginTop: "20px" }}>No articles match your search or this source has not fetched articles yet.</p>
+                <p style={{ textAlign: "center", color: "#5E574C", fontSize: "18px", marginTop: "20px" }}>No valid articles match your search or this source has not fetched articles yet.</p>
               ) : (
                 sourceArticles.map((article) => {
                   const displayImage = getArticleImage(article);

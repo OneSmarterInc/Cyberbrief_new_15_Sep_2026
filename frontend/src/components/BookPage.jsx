@@ -49,13 +49,13 @@ export default function BookPage({ onBack }) {
   // 3. Custom Handlers to update URL when clicking
   const handleBookClick = (book) => {
     setSelectedBook(book);
-    window.scrollTo({ top: 0, behavior: "instant" });
+    window.scrollTo({ top: 0, behavior: "smooth" });
     window.history.pushState({}, "", `?id=${book.id}`);
   };
 
   const handleCloseDetail = () => {
     setSelectedBook(null);
-    window.scrollTo({ top: 0, behavior: "instant" });
+    window.scrollTo({ top: 0, behavior: "smooth" });
     window.history.pushState({}, "", window.location.pathname);
   };
 
@@ -70,7 +70,143 @@ export default function BookPage({ onBack }) {
   };
 
   return (
-    <div style={{ minHeight: "100vh", backgroundColor: "#F3EEE3", fontFamily: "Arial, sans-serif", color: "#161412", padding: "40px 20px" }}>
+    <div style={{ minHeight: "100vh", backgroundColor: "#F3EEE3", fontFamily: "Arial, sans-serif", color: "#161412", padding: "40px 20px" }} className="book-page-container">
+      
+      {/* Responsive Styles Injection */}
+      <style>{`
+        .book-page-container {
+          padding: 40px 20px;
+        }
+
+        /* Books Library Grid View */
+        .books-grid {
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 35px;
+        }
+
+        .book-card {
+          display: flex;
+          flex-direction: row;
+          background-color: #FDFBF7;
+          border: 1px solid #161412;
+          padding: 25px;
+          gap: 25px;
+          min-height: 280px;
+          position: relative;
+        }
+
+        .book-card-img-wrapper {
+          flex: 0 0 150px;
+          border: 1px solid #EBE4D5;
+          padding: 5px;
+          background-color: #fff;
+          height: fit-content;
+        }
+
+        .book-card-info {
+          display: flex;
+          flex-direction: column;
+          flex: 1;
+        }
+
+        /* Detail View */
+        .detail-wrapper {
+          background-color: #FDFBF7;
+          padding: 40px;
+          border: 1px solid #161412;
+          border-top: 4px solid #161412;
+        }
+
+        .detail-container {
+          display: flex;
+          gap: 50px;
+          align-items: flex-start;
+          flex-wrap: wrap;
+        }
+
+        .detail-image-col {
+          flex: 0 0 350px;
+          max-width: 100%;
+        }
+
+        .detail-info-col {
+          flex: 1;
+          min-width: 300px;
+        }
+
+        .detail-title {
+          font-size: 32px;
+          color: #161412;
+          margin: 0 0 25px 0;
+          font-family: Georgia, serif;
+          font-weight: bold;
+          line-height: 1.2;
+        }
+
+        /* Breakpoint: Tablets (<= 950px) */
+        @media (max-width: 950px) {
+          .books-grid {
+            grid-template-columns: 1fr; /* Switch grid to 1 column */
+          }
+          .detail-container {
+            gap: 30px;
+          }
+        }
+
+        /* Breakpoint: Mobile (<= 768px) */
+        @media (max-width: 768px) {
+          .book-page-container {
+            padding: 20px 15px;
+          }
+          .detail-wrapper {
+            padding: 25px;
+          }
+          .detail-container {
+            flex-direction: column;
+            align-items: center;
+          }
+          .detail-image-col {
+            flex: 1 1 100%;
+            max-width: 300px;
+            margin: 0 auto;
+          }
+          .detail-info-col {
+            min-width: 100%;
+          }
+          .detail-title {
+            font-size: 26px;
+            text-align: center;
+          }
+          .detail-posted {
+            text-align: center;
+          }
+          .purchase-btn-container {
+            display: flex;
+            justify-content: center;
+          }
+        }
+
+        /* Breakpoint: Small Mobile (<= 550px) */
+        @media (max-width: 550px) {
+          .book-card {
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            padding: 20px;
+            gap: 15px;
+          }
+          .book-card-img-wrapper {
+            flex: none;
+            width: 100%;
+            max-width: 160px;
+          }
+          .book-card-info h3 {
+            font-size: 20px !important;
+          }
+        }
+      `}</style>
+
       <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
 
         {loading ? (
@@ -80,7 +216,7 @@ export default function BookPage({ onBack }) {
           /* =========================================
              TWO-COLUMN DETAIL VIEW (Editorial Theme)
              ========================================= */
-          <div style={{ backgroundColor: "#FDFBF7", padding: "40px", border: "1px solid #161412", borderTop: "4px solid #161412" }}>
+          <div className="detail-wrapper">
             <button 
               onClick={handleCloseDetail} 
               style={{ background: "none", border: "none", color: "#5E574C", cursor: "pointer", fontSize: "12px", padding: 0, marginBottom: "30px", fontWeight: "bold", letterSpacing: "1px", textTransform: "uppercase" }}
@@ -89,10 +225,10 @@ export default function BookPage({ onBack }) {
             </button>
 
             {/* Flex Container for Left Image / Right Text */}
-            <div style={{ display: "flex", gap: "50px", alignItems: "flex-start", flexWrap: "wrap" }}>
+            <div className="detail-container">
               
               {/* Left Column: Image */}
-              <div style={{ flex: "0 0 350px", maxWidth: "100%" }}>
+              <div className="detail-image-col">
                 {selectedBook.image_url ? (
                   <img 
                     src={getImageUrl(selectedBook.image_url)} 
@@ -110,13 +246,13 @@ export default function BookPage({ onBack }) {
               </div>
 
               {/* Right Column: Information */}
-              <div style={{ flex: "1", minWidth: "300px" }}>
-                <p style={{ fontSize: "12px", color: "#5E574C", marginTop: "0", marginBottom: "8px", fontWeight: "bold", textTransform: "uppercase", letterSpacing: "1px" }}>
+              <div className="detail-info-col">
+                <p className="detail-posted" style={{ fontSize: "12px", color: "#5E574C", marginTop: "0", marginBottom: "8px", fontWeight: "bold", textTransform: "uppercase", letterSpacing: "1px" }}>
                   Posted: {selectedBook.created_at || "Recently"}
                 </p>
 
                 {/* Main Serif Headline */}
-                <h1 style={{ fontSize: "32px", color: "#161412", margin: "0 0 25px 0", fontFamily: "Georgia, serif", fontWeight: "bold", lineHeight: "1.2" }}>
+                <h1 className="detail-title">
                   {selectedBook.title}
                 </h1>
 
@@ -126,7 +262,7 @@ export default function BookPage({ onBack }) {
                   style={{ fontSize: "16px", color: "#333", lineHeight: "1.8", marginBottom: "40px", fontFamily: "Georgia, serif" }} 
                 />
 
-                <div style={{ borderTop: "1px solid #EBE4D5", paddingTop: "25px" }}>
+                <div className="purchase-btn-container" style={{ borderTop: "1px solid #EBE4D5", paddingTop: "25px" }}>
                   <a 
                     href={selectedBook.url} 
                     target="_blank" 
@@ -152,21 +288,12 @@ export default function BookPage({ onBack }) {
           /* =========================================
              REFINED GRID VIEW (Wide Cards with Increased Height)
              ========================================= */
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "35px" }}>
+          <div className="books-grid">
             {books.map(book => (
-              <div key={book.id} style={{ 
-                display: "flex", 
-                flexDirection: "row", 
-                backgroundColor: "#FDFBF7", 
-                border: "1px solid #161412", 
-                padding: "25px",
-                gap: "25px",
-                minHeight: "280px",
-                position: "relative"
-              }}>
+              <div key={book.id} className="book-card">
                 
-                {/* Left Side: Thumbnail Image with proper vertical alignment */}
-                <div style={{ flex: "0 0 150px", border: "1px solid #EBE4D5", padding: "5px", backgroundColor: "#fff", height: "fit-content" }}>
+                {/* Left Side: Thumbnail Image */}
+                <div className="book-card-img-wrapper">
                   {book.image_url ? (
                     <img 
                       src={getImageUrl(book.image_url)} 
@@ -181,14 +308,14 @@ export default function BookPage({ onBack }) {
                 </div>
                 
                 {/* Right Side: Title, Description, and Action Button */}
-                <div style={{ display: "flex", flexDirection: "column", flex: "1" }}>
+                <div className="book-card-info">
                   
                   {/* Card Title - Serif */}
                   <h3 style={{ fontFamily: "Georgia, serif", fontSize: "19px", margin: "0 0 10px 0", color: "#161412", lineHeight: "1.3" }}>
                     {book.title}
                   </h3>
                   
-                  {/* Grid Summary with increased room */}
+                  {/* Grid Summary with fade effect */}
                   <div style={{ flex: "1", overflow: "hidden", maxHeight: "115px", marginBottom: "20px", position: "relative" }}>
                     <div 
                       dangerouslySetInnerHTML={{ __html: book.description }} 

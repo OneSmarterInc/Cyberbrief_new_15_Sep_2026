@@ -184,146 +184,186 @@ export default function NewsCard({ article, index, onArticleClick }) {
   };
 
   return (
-    <article 
-      className={`news-card ${index % 2 ? "reverse" : ""}`} 
-      style={{ position: "relative", cursor: "pointer", transition: "opacity 0.2s" }}
-      onClick={handleCardClick}
-      onMouseOver={(e) => e.currentTarget.style.opacity = "0.9"}
-      onMouseOut={(e) => e.currentTarget.style.opacity = "1"}
-    >
-      {modal.show && (
-        <div 
-          onClick={(e) => e.stopPropagation()} 
-          style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 20, padding: "20px" }}
-        >
-          <div style={{ backgroundColor: "#F3EEE3", border: "2px solid #161412", padding: "25px", maxWidth: "350px", width: "100%", boxShadow: "0 10px 25px rgba(0,0,0,0.2)", borderRadius: "4px", textAlign: "left", cursor: "default" }}>
-            <h3 style={{ fontFamily: "Georgia, serif", margin: "0 0 10px 0", color: "#161412", fontSize: "17px" }}>{modal.title}</h3>
-            <p style={{ fontSize: "13px", color: "#5E574C", lineHeight: "1.5", marginBottom: "20px" }}>{modal.message}</p>
-            <div style={{ display: "flex", justifyContent: "flex-end" }}>
-              <button onClick={() => setModal({ show: false })} style={{ padding: "6px 16px", backgroundColor: "#161412", color: "#F3EEE3", border: "none", fontWeight: "bold", cursor: "pointer", fontSize: "11px" }}>OK</button>
+    <>
+      {/* Responsive Styles scoped for NewsCard */}
+      <style>{`
+        @media (max-width: 850px) {
+          .news-card {
+            flex-direction: column !important;
+            height: auto !important;
+          }
+          .news-card.reverse {
+            flex-direction: column !important;
+          }
+          .news-card .news-image {
+            width: 100% !important;
+            height: 250px !important;
+            max-height: 250px !important;
+            object-fit: cover !important;
+            object-position: center 15% !important;
+          }
+          .news-card .news-content {
+            width: 100% !important;
+            padding: 20px !important;
+          }
+          .news-card .card-bottom {
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 12px !important;
+          }
+          .news-card .card-bottom button {
+            width: 100% !important;
+            justify-content: center !important;
+            margin-left: 0 !important;
+          }
+          .news-card .meta {
+            flex-wrap: wrap !important;
+            line-height: 1.6 !important;
+          }
+        }
+      `}</style>
+
+      <article 
+        className={`news-card ${index % 2 ? "reverse" : ""}`} 
+        style={{ position: "relative", cursor: "pointer", transition: "opacity 0.2s" }}
+        onClick={handleCardClick}
+        onMouseOver={(e) => e.currentTarget.style.opacity = "0.9"}
+        onMouseOut={(e) => e.currentTarget.style.opacity = "1"}
+      >
+        {modal.show && (
+          <div 
+            onClick={(e) => e.stopPropagation()} 
+            style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 20, padding: "20px" }}
+          >
+            <div style={{ backgroundColor: "#F3EEE3", border: "2px solid #161412", padding: "25px", maxWidth: "350px", width: "100%", boxSizing: "border-box", boxShadow: "0 10px 25px rgba(0,0,0,0.2)", borderRadius: "4px", textAlign: "left", cursor: "default" }}>
+              <h3 style={{ fontFamily: "Georgia, serif", margin: "0 0 10px 0", color: "#161412", fontSize: "17px" }}>{modal.title}</h3>
+              <p style={{ fontSize: "13px", color: "#5E574C", lineHeight: "1.5", marginBottom: "20px" }}>{modal.message}</p>
+              <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                <button onClick={() => setModal({ show: false })} style={{ padding: "6px 16px", backgroundColor: "#161412", color: "#F3EEE3", border: "none", fontWeight: "bold", cursor: "pointer", fontSize: "11px" }}>OK</button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      <img className="news-image" src={articleImage} alt={fullName} />
+        <img className="news-image" src={articleImage} alt={fullName} />
 
-      <div className="news-content">
-        <div className="meta">
-          <span className="category">{(article?.category || "NEWS").toUpperCase()}</span>
-          <span>{article?.source || "NEWS DESK"}</span><i />
-          
-          <span style={{ color: "#C9A227", fontWeight: "bold" }}>{fullName.toUpperCase()}</span><i />
-          
-          <span>{getRelativeTime(article?.published).toUpperCase()}</span>
-        </div>
-
-        <h2>{article?.title || article?.original_title || "Untitled Article"}</h2>
-        <div className="rule" />
-        
-        <p>{getTruncatedSummary(article?.summary)}</p>
-
-        <div className="card-bottom" style={{ display: "flex", gap: "10px", flexWrap: "wrap", alignItems: "center", marginTop: "auto", paddingTop: "15px" }}>
-          
-          <button 
-            className={`listen ${speaking ? "active" : ""}`} 
-            onClick={(e) => { e.stopPropagation(); handleListen(); }}
-            style={{ 
-              backgroundColor: speaking ? "#161412" : "transparent", 
-              color: speaking ? "#F3EEE3" : "#161412", 
-              border: "1px solid #161412", 
-              padding: "8px 16px", 
-              fontWeight: "bold", 
-              cursor: "pointer", 
-              fontSize: "11px", 
-              display: "flex", 
-              alignItems: "center", 
-              gap: "6px",
-              textTransform: "uppercase",
-              letterSpacing: "1px"
-            }}
-          >
-            <span>{speaking ? "■" : "▶"}</span> {speaking ? "STOP READING" : "LISTEN"}
-          </button>
-          
-          <button 
-            className="read" 
-            onClick={(e) => { e.stopPropagation(); setShowModal(true); }} 
-            style={{ 
-              backgroundColor: "#EBE4D5", 
-              color: "#161412", 
-              border: "none", 
-              padding: "9px 16px", 
-              fontWeight: "bold", 
-              cursor: "pointer", 
-              fontSize: "11px",
-              display: "flex",
-              alignItems: "center",
-              gap: "6px",
-              textTransform: "uppercase",
-              letterSpacing: "1px"
-            }}
-          >
-            SUBMIT QUERY <span style={{ fontSize: "14px", fontWeight: "900" }}>?</span>
-          </button>
-
-          <button 
-            className="read" 
-            onClick={(e) => { e.stopPropagation(); handleCardClick(); }} 
-            style={{ 
-              marginLeft: "auto", 
-              background: "transparent", 
-              border: "none", 
-              color: "#8F7118", 
-              fontWeight: "bold", 
-              fontSize: "11px", 
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              gap: "4px",
-              textTransform: "uppercase",
-              letterSpacing: "1px"
-            }}
-          >
-            VIEW DETAILS <span style={{ fontSize: "14px" }}>→</span>
-          </button>
-        </div>
-      </div>
-
-      {showModal && (
-        <div 
-          onClick={(e) => e.stopPropagation()} 
-          style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(22,20,18,0.9)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 10, padding: "20px", cursor: "default" }}
-        >
-          <div style={{ backgroundColor: "#F3EEE3", padding: "30px", width: "100%", maxWidth: "400px", border: "2px solid #C9A227", borderRadius: "4px" }}>
-            <h3 style={{ margin: "0 0 15px 0", fontFamily: "Georgia, serif", color: "#161412" }}>Submit Query to Editor</h3>
-            <p style={{ fontSize: "12px", color: "#5E574C", marginBottom: "15px" }}>Ask a question or report an issue regarding this specific story.</p>
+        <div className="news-content">
+          <div className="meta">
+            <span className="category">{(article?.category || "NEWS").toUpperCase()}</span>
+            <span>{article?.source || "NEWS DESK"}</span><i />
             
-            <textarea 
-              value={queryText}
-              onChange={(e) => setQueryText(e.target.value)}
-              placeholder="What would you like to ask?"
-              style={{ width: "100%", height: "100px", padding: "10px", border: "1px solid #161412", backgroundColor: "#fff", outline: "none", resize: "none", marginBottom: "15px", fontFamily: "Arial", color: "#161412", boxSizing: "border-box" }}
-            />
+            <span style={{ color: "#C9A227", fontWeight: "bold" }}>{fullName.toUpperCase()}</span><i />
             
-            <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <button 
-                onClick={(e) => { e.stopPropagation(); setShowModal(false); }} 
-                style={{ padding: "8px 15px", border: "none", background: "transparent", cursor: "pointer", fontWeight: "bold", color: "#5E574C" }}
-              >
-                CANCEL
-              </button>
-              <button 
-                onClick={(e) => { e.stopPropagation(); submitQuery(); }} 
-                disabled={submitStatus === "loading" || !queryText.trim()}
-                style={{ padding: "8px 15px", border: "none", background: "#161412", color: "#F3EEE3", cursor: "pointer", fontWeight: "bold", borderRadius: "3px" }}
-              >
-                {submitStatus === "loading" ? "SENDING..." : submitStatus === "success" ? "SENT!" : "SUBMIT"}
-              </button>
-            </div>
+            <span>{getRelativeTime(article?.published).toUpperCase()}</span>
+          </div>
+
+          <h2>{article?.title || article?.original_title || "Untitled Article"}</h2>
+          <div className="rule" />
+          
+          <p>{getTruncatedSummary(article?.summary)}</p>
+
+          <div className="card-bottom" style={{ display: "flex", gap: "10px", flexWrap: "wrap", alignItems: "center", marginTop: "auto", paddingTop: "15px" }}>
+            
+            <button 
+              className={`listen ${speaking ? "active" : ""}`} 
+              onClick={(e) => { e.stopPropagation(); handleListen(); }}
+              style={{ 
+                backgroundColor: speaking ? "#161412" : "transparent", 
+                color: speaking ? "#F3EEE3" : "#161412", 
+                border: "1px solid #161412", 
+                padding: "8px 16px", 
+                fontWeight: "bold", 
+                cursor: "pointer", 
+                fontSize: "11px", 
+                display: "flex", 
+                alignItems: "center", 
+                gap: "6px",
+                textTransform: "uppercase",
+                letterSpacing: "1px"
+              }}
+            >
+              <span>{speaking ? "■" : "▶"}</span> {speaking ? "STOP READING" : "LISTEN"}
+            </button>
+            
+            <button 
+              className="read" 
+              onClick={(e) => { e.stopPropagation(); setShowModal(true); }} 
+              style={{ 
+                backgroundColor: "#EBE4D5", 
+                color: "#161412", 
+                border: "none", 
+                padding: "9px 16px", 
+                fontWeight: "bold", 
+                cursor: "pointer", 
+                fontSize: "11px",
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                textTransform: "uppercase",
+                letterSpacing: "1px"
+              }}
+            >
+              SUBMIT QUERY <span style={{ fontSize: "14px", fontWeight: "900" }}>?</span>
+            </button>
+
+            <button 
+              className="read" 
+              onClick={(e) => { e.stopPropagation(); handleCardClick(); }} 
+              style={{ 
+                marginLeft: "auto", 
+                background: "transparent", 
+                border: "none", 
+                color: "#8F7118", 
+                fontWeight: "bold", 
+                fontSize: "11px", 
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: "4px",
+                textTransform: "uppercase",
+                letterSpacing: "1px"
+              }}
+            >
+              VIEW DETAILS <span style={{ fontSize: "14px" }}>→</span>
+            </button>
           </div>
         </div>
-      )}
-    </article>
+
+        {showModal && (
+          <div 
+            onClick={(e) => e.stopPropagation()} 
+            style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(22,20,18,0.9)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 10, padding: "20px", cursor: "default" }}
+          >
+            <div style={{ backgroundColor: "#F3EEE3", padding: "30px", width: "100%", maxWidth: "400px", border: "2px solid #C9A227", borderRadius: "4px", boxSizing: "border-box" }}>
+              <h3 style={{ margin: "0 0 15px 0", fontFamily: "Georgia, serif", color: "#161412" }}>Submit Query to Editor</h3>
+              <p style={{ fontSize: "12px", color: "#5E574C", marginBottom: "15px" }}>Ask a question or report an issue regarding this specific story.</p>
+              
+              <textarea 
+                value={queryText}
+                onChange={(e) => setQueryText(e.target.value)}
+                placeholder="What would you like to ask?"
+                style={{ width: "100%", height: "100px", padding: "10px", border: "1px solid #161412", backgroundColor: "#fff", outline: "none", resize: "none", marginBottom: "15px", fontFamily: "Arial", color: "#161412", boxSizing: "border-box" }}
+              />
+              
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <button 
+                  onClick={(e) => { e.stopPropagation(); setShowModal(false); }} 
+                  style={{ padding: "8px 15px", border: "none", background: "transparent", cursor: "pointer", fontWeight: "bold", color: "#5E574C" }}
+                >
+                  CANCEL
+                </button>
+                <button 
+                  onClick={(e) => { e.stopPropagation(); submitQuery(); }} 
+                  disabled={submitStatus === "loading" || !queryText.trim()}
+                  style={{ padding: "8px 15px", border: "none", background: "#161412", color: "#F3EEE3", cursor: "pointer", fontWeight: "bold", borderRadius: "3px" }}
+                >
+                  {submitStatus === "loading" ? "SENDING..." : submitStatus === "success" ? "SENT!" : "SUBMIT"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </article>
+    </>
   );
 }

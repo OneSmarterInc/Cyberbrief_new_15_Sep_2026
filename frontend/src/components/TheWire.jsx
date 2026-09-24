@@ -6,7 +6,6 @@ const PROF_NAMES = [
 ];
 const getProfName = (id) => PROF_NAMES[(id || 1) - 1] || PROF_NAMES[0];
 
-// ADDED onArticleClick TO THE PROPS
 export default function TheWire({ articles, selectedCategory = "All", onArticleClick }) {
   // Grab exactly 10 random, active stories filtered by category
   const wireArticles = useMemo(() => {
@@ -50,43 +49,35 @@ export default function TheWire({ articles, selectedCategory = "All", onArticleC
       {/* List of articles */}
       <div style={{ display: "flex", flexDirection: "column" }}>
         {wireArticles.length > 0 ? (
-          wireArticles.map((article, i) => {
-            const isLead = i % 4 === 0;
-            const isBreach = i % 7 === 0;
-            let badgeText = "new story";
-            if (isLead) badgeText = "adds to lead story";
-            if (isBreach) badgeText = "adds to breach story";
-
-            return (
-              <div 
-                onClick={() => {
-                  if (onArticleClick) {
-                    onArticleClick(article);
-                  } else if (article.link) {
-                    window.open(article.link, "_blank", "noopener,noreferrer");
-                  }
-                }}
-                key={article.id || i} 
-                className="wire-clickable"
-                style={{ gap: "15px", paddingBottom: "20px", marginBottom: "20px", borderBottom: "1px solid rgba(243, 238, 227, 0.1)" }}
-              >
-                {/* Left Column: Professor Name (Normal size) */}
-                <div style={{ color: "#C9C1B0", fontSize: "13px", width: "85px", flexShrink: 0, marginTop: "2px", fontWeight: "bold" }}>
-                  {getProfName(article.professor_id)}
-                </div>
-                
-                {/* Right Column: Smaller Headline, Normal Meta/Source */}
-                <div style={{ flex: 1 }}>
-                  <h4 style={{ margin: "0 0 6px 0", fontSize: "13.5px", lineHeight: "1.35", color: "#F3EEE3", fontWeight: "bold" }}>
-                    {article.ai_headline || article.title}
-                  </h4>
-                  <div style={{ fontSize: "13px", color: "#C9C1B0" }}>
-                    {article.source || "News Source"} · <span style={{ color: badgeText !== "new story" ? "#C9A227" : "#C9C1B0" }}>{badgeText}</span>
-                  </div>
+          wireArticles.map((article, i) => (
+            <div 
+              onClick={() => {
+                if (onArticleClick) {
+                  onArticleClick(article);
+                } else if (article.link) {
+                  window.open(article.link, "_blank", "noopener,noreferrer");
+                }
+              }}
+              key={article.id || i} 
+              className="wire-clickable"
+              style={{ gap: "15px", paddingBottom: "20px", marginBottom: "20px", borderBottom: "1px solid rgba(243, 238, 227, 0.1)" }}
+            >
+              {/* Left Column: Professor Name (Normal size) */}
+              <div style={{ color: "#C9C1B0", fontSize: "13px", width: "85px", flexShrink: 0, marginTop: "2px", fontWeight: "bold" }}>
+                {getProfName(article.professor_id)}
+              </div>
+              
+              {/* Right Column: Smaller Headline, Source Only */}
+              <div style={{ flex: 1 }}>
+                <h4 style={{ margin: "0 0 6px 0", fontSize: "13.5px", lineHeight: "1.35", color: "#F3EEE3", fontWeight: "bold" }}>
+                  {article.ai_headline || article.title}
+                </h4>
+                <div style={{ fontSize: "13px", color: "#C9C1B0" }}>
+                  {article.source || "News Source"}
                 </div>
               </div>
-            );
-          })
+            </div>
+          ))
         ) : (
           <div style={{ color: "#C9C1B0", fontSize: "14px", fontStyle: "italic" }}>
             No stories currently available for {selectedCategory}.

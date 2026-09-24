@@ -420,7 +420,8 @@ export default function HomeFeed({
 
   return (
     <>
-      <div className="layout-container" style={{ display: "flex", maxWidth: "1550px", margin: "0 auto", width: "100%", padding: "20px 15px", gap: "25px", position: "relative" }}>
+      <div className="layout-container" style={{ display: "flex", maxWidth: "1550px", margin: "0 auto", width: "100%", padding: "5px 15px 20px 15px", gap: "25px", position: "relative" }}>
+        
         {modal.show && (
           <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
             <div style={{ backgroundColor: "#F3EEE3", border: "2px solid #161412", padding: "30px", maxWidth: "400px", width: "100%", boxShadow: "0 10px 25px rgba(0,0,0,0.2)", borderRadius: "4px" }}>
@@ -435,11 +436,21 @@ export default function HomeFeed({
 
         <style>{`
           .layout-container { flex-direction: row; align-items: flex-start; }
-          .wire-sidebar { width: 420px; flex-shrink: 0; }
+          
+          /* Added margin-top here to push The Wire box away from the navbar */
+          .wire-sidebar { width: 420px; flex-shrink: 0; margin-top: 25px; }
+          
           .page-content { flex: 1; min-width: 0; }
           .most-covered-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
           .clickable-card { text-decoration: none; color: inherit; display: flex; transition: opacity 0.2s; cursor: pointer; }
           .clickable-card:hover { opacity: 0.85; }
+          
+          .page-header {
+            border-bottom: none !important;
+            margin-bottom: 15px !important;
+            padding-bottom: 0 !important;
+            margin-top: 0 !important;
+          }
           
           .professors-grid {
             display: grid;
@@ -454,11 +465,12 @@ export default function HomeFeed({
           }
           @media (max-width: 1024px) {
             .layout-container { flex-direction: column; }
-            .wire-sidebar { width: 100%; }
+            .wire-sidebar { width: 100%; margin-top: 15px; } /* Slightly less margin when stacked on mobile */
             .most-covered-grid { grid-template-columns: repeat(2, 1fr); }
           }
           @media (max-width: 768px) {
             .most-covered-grid { grid-template-columns: 1fr; }
+            .page-header h1 { font-size: 28px !important; }
           }
           @media (max-width: 600px) {
             .professors-grid { grid-template-columns: 1fr; }
@@ -466,13 +478,14 @@ export default function HomeFeed({
         `}</style>
 
         <main className="page page-content" style={{ padding: 0 }}>
-          <section className="page-header">
-            <div>
-              <div className="kicker">THE DAILY BRIEF</div>
-              <h1>{searchQuery ? `Search Results: "${searchQuery}"` : "Today’s News Desk"}</h1>
-              <p>{filteredArticles.length} stories • {searchQuery ? "Matching your search" : "AI-powered news intelligence"}</p>
-            </div>
-            <button className="refresh" onClick={() => fetchNews(true)} disabled={refreshing}>{refreshing ? "REFRESHING" : "REFRESH"}</button>
+          
+          <section className="page-header" style={{ marginBottom: "15px", borderBottom: "none", paddingBottom: 0 }}>
+            <h1 style={{ fontFamily: "Georgia, serif", fontSize: "36px", color: "#161412", margin: 0, display: "flex", alignItems: "baseline", flexWrap: "wrap", gap: "10px" }}>
+              <span style={{ fontFamily: "Arial, sans-serif", fontSize: "14px", fontWeight: "bold", color: "#8F7118", letterSpacing: "1.5px", textTransform: "uppercase", marginRight: "5px" }}>
+                THE DAILY BRIEF
+              </span>
+              {searchQuery ? `Search Results: "${searchQuery}"` : "Today’s News Desk"}
+            </h1>
           </section>
 
           {loading ? (
@@ -556,10 +569,10 @@ export default function HomeFeed({
                   )}
 
                   {totalPages > 1 && (
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "50px", paddingTop: "30px", borderTop: "2px solid #161412" }}>
-                      <button onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1} style={{ padding: "12px 24px", backgroundColor: currentPage === 1 ? "#EBE4D5" : "#161412", color: currentPage === 1 ? "#A39E93" : "#F3EEE3", border: "none", fontWeight: "bold", cursor: currentPage === 1 ? "not-allowed" : "pointer" }}>&larr; PREVIOUS</button>
-                      <span style={{ fontSize: "14px", fontWeight: "bold", color: "#5E574C", letterSpacing: "1px" }}>PAGE {currentPage} OF {totalPages}</span>
-                      <button onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages} style={{ padding: "12px 24px", backgroundColor: currentPage === totalPages ? "#EBE4D5" : "#161412", color: currentPage === totalPages ? "#A39E93" : "#F3EEE3", border: "none", fontWeight: "bold", cursor: currentPage === totalPages ? "not-allowed" : "pointer" }}>NEXT &rarr;</button>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "50px", paddingTop: "30px", borderTop: "2px solid #161412", flexWrap: "wrap", gap: "15px" }}>
+                      <button onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1} style={{ padding: "12px 24px", backgroundColor: currentPage === 1 ? "#EBE4D5" : "#161412", color: currentPage === 1 ? "#A39E93" : "#F3EEE3", border: "none", fontWeight: "bold", cursor: currentPage === 1 ? "not-allowed" : "pointer", flex: window.innerWidth <= 768 ? "1 1 100%" : "none" }}>&larr; PREVIOUS</button>
+                      <span style={{ fontSize: "14px", fontWeight: "bold", color: "#5E574C", letterSpacing: "1px", textAlign: "center", flex: window.innerWidth <= 768 ? "1 1 100%" : "none" }}>PAGE {currentPage} OF {totalPages}</span>
+                      <button onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages} style={{ padding: "12px 24px", backgroundColor: currentPage === totalPages ? "#EBE4D5" : "#161412", color: currentPage === totalPages ? "#A39E93" : "#F3EEE3", border: "none", fontWeight: "bold", cursor: currentPage === totalPages ? "not-allowed" : "pointer", flex: window.innerWidth <= 768 ? "1 1 100%" : "none" }}>NEXT &rarr;</button>
                     </div>
                   )}
                 </>
@@ -687,7 +700,9 @@ export default function HomeFeed({
               cursor: "pointer", 
               marginBottom: "40px",
               boxShadow: "0 4px 15px rgba(0,0,0,0.02)",
-              transition: "transform 0.2s ease, box-shadow 0.2s ease" 
+              transition: "transform 0.2s ease, box-shadow 0.2s ease",
+              flexWrap: "wrap",
+              gap: "15px"
             }}
             onMouseOver={e => {
               e.currentTarget.style.transform = "translateY(-3px)";
@@ -702,7 +717,7 @@ export default function HomeFeed({
               <span style={{ color: "#8F7118", letterSpacing: "2px", fontSize: "12px", fontWeight: "bold", textTransform: "uppercase" }}>
                 Volunteer / Internship seats now open
               </span>
-              <span style={{ color: "#8F7118" }}>—</span>
+              <span style={{ color: "#8F7118", display: window.innerWidth < 600 ? "none" : "inline" }}>—</span>
               <span style={{ color: "#161412", fontFamily: "Georgia, serif", fontSize: "24px", fontWeight: "bold" }}>
                 Join the Newswire
               </span>

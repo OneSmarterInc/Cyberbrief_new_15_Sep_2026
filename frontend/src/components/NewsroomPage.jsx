@@ -81,7 +81,7 @@ export default function NewsroomPage({ articles, onBack, onArticleClick }) {
     const params = new URLSearchParams(window.location.search);
     const prof = parseInt(params.get("prof")) || 1;
     setProfId(prof);
-    window.scrollTo({ top: 0, behavior: "instant" });
+    window.scrollTo({ top: 0, behavior: "smooth" });
 
     return () => {
       if ('speechSynthesis' in window) {
@@ -171,15 +171,164 @@ export default function NewsroomPage({ articles, onBack, onArticleClick }) {
   };
 
   return (
-    <div style={{ minHeight: "100vh", backgroundColor: "#F3EEE3", padding: "40px 20px", position: "relative" }}>
+    <div className="newsroom-page-wrapper" style={{ minHeight: "100vh", backgroundColor: "#F3EEE3", position: "relative" }}>
       
+      <style>{`
+        .newsroom-page-wrapper {
+          padding: 40px 20px;
+        }
+        
+        .newsroom-main-card {
+          max-width: 1000px;
+          margin: 0 auto;
+          background-color: #FFFFFF;
+          border: 1px solid #EBE4D5;
+          box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+          padding: 60px;
+        }
+
+        .newsroom-hero-img {
+          width: 100%;
+          height: 500px;
+          object-fit: cover;
+          object-position: top;
+          border-bottom: 4px solid #161412;
+        }
+
+        .newsroom-title {
+          font-family: Georgia, serif;
+          font-size: 48px;
+          color: #161412;
+          margin: 0 0 15px 0;
+          line-height: 1.1;
+          letter-spacing: -1px;
+        }
+
+        .newsroom-desc {
+          font-family: Georgia, serif;
+          font-style: italic;
+          font-size: 22px;
+          color: #5E574C;
+          margin: 0 0 25px 0;
+          line-height: 1.5;
+        }
+
+        /* Article List Items */
+        .article-row {
+          display: flex;
+          gap: 25px;
+          padding-bottom: 35px;
+          border-bottom: 1px solid #EBE4D5;
+          cursor: pointer;
+          flex-direction: row;
+        }
+
+        .article-img {
+          width: 220px;
+          height: 150px;
+          object-fit: cover;
+          object-position: top;
+          flex-shrink: 0;
+          border: 1px solid #161412;
+        }
+
+        .article-content {
+          display: flex;
+          flex-direction: column;
+          justify-content: flex-start;
+          flex: 1;
+        }
+
+        .article-actions {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-top: auto;
+          flex-wrap: wrap;
+          gap: 10px;
+        }
+
+        .article-btn-group {
+          display: flex;
+          gap: 10px;
+          flex-wrap: wrap;
+        }
+
+        .article-btn {
+          padding: 6px 14px;
+          font-weight: bold;
+          cursor: pointer;
+          border-radius: 3px;
+          font-size: 11px;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          transition: all 0.2s;
+          letter-spacing: 1px;
+          text-transform: uppercase;
+        }
+
+        .article-author-tag {
+          font-size: 10px;
+          color: #8F7118;
+          font-weight: bold;
+          letter-spacing: 1px;
+          text-transform: uppercase;
+        }
+
+        /* Modals */
+        .app-modal-overlay {
+          position: fixed;
+          top: 0; left: 0; right: 0; bottom: 0;
+          background-color: rgba(22,20,18,0.9);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 9999;
+          padding: 20px;
+          cursor: default;
+        }
+
+        .app-modal-content {
+          background-color: #F3EEE3;
+          padding: 30px;
+          width: 100%;
+          max-width: 400px;
+          border: 2px solid #C9A227;
+          border-radius: 4px;
+          box-sizing: border-box;
+        }
+
+        /* Responsive Breakpoints */
+        @media (max-width: 900px) {
+          .newsroom-hero-img { height: 400px; }
+          .newsroom-title { font-size: 38px; }
+          .newsroom-desc { font-size: 19px; }
+        }
+
+        @media (max-width: 768px) {
+          .newsroom-page-wrapper { padding: 20px 10px; }
+          .newsroom-main-card { padding: 25px; }
+          .newsroom-hero-img { height: 280px; }
+          .newsroom-title { font-size: 30px; }
+          .newsroom-desc { font-size: 17px; }
+
+          .article-row { flex-direction: column; gap: 15px; }
+          .article-img { width: 100%; height: auto; aspect-ratio: 16/9; }
+          
+          .article-actions { flex-direction: column; align-items: stretch; gap: 15px; margin-top: 20px; }
+          .article-btn-group { flex-direction: column; align-items: stretch; width: 100%; }
+          .article-btn { width: 100%; justify-content: center; padding: 10px; }
+          .article-author-tag { text-align: center; margin-top: 5px; }
+          
+          .app-modal-content { padding: 20px; }
+        }
+      `}</style>
+
       {/* Submit Query Modal logic added here */}
       {queryArticle && (
-        <div 
-          onClick={(e) => { e.stopPropagation(); setQueryArticle(null); }} 
-          style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(22,20,18,0.9)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999, padding: "20px", cursor: "default" }}
-        >
-          <div onClick={e => e.stopPropagation()} style={{ backgroundColor: "#F3EEE3", padding: "30px", width: "100%", maxWidth: "400px", border: "2px solid #C9A227", borderRadius: "4px" }}>
+        <div className="app-modal-overlay" onClick={(e) => { e.stopPropagation(); setQueryArticle(null); }}>
+          <div className="app-modal-content" onClick={e => e.stopPropagation()}>
             <h3 style={{ margin: "0 0 15px 0", fontFamily: "Georgia, serif", color: "#161412" }}>Submit Query to Editor</h3>
             <p style={{ fontSize: "12px", color: "#5E574C", marginBottom: "15px" }}>Ask a question or report an issue regarding this specific story.</p>
             
@@ -209,7 +358,7 @@ export default function NewsroomPage({ articles, onBack, onArticleClick }) {
         </div>
       )}
 
-      <div style={{ maxWidth: "1000px", margin: "0 auto", backgroundColor: "#FFFFFF", padding: window.innerWidth < 768 ? "20px" : "60px", border: "1px solid #EBE4D5", boxShadow: "0 4px 15px rgba(0,0,0,0.05)" }}>
+      <div className="newsroom-main-card">
         
         <button onClick={onBack} style={{ background: "none", border: "none", cursor: "pointer", color: "#8F7118", fontWeight: "bold", fontSize: "13px", marginBottom: "30px", display: "flex", alignItems: "center", gap: "5px", letterSpacing: "1px" }}>
           ← BACK TO FEED
@@ -219,7 +368,7 @@ export default function NewsroomPage({ articles, onBack, onArticleClick }) {
           <img 
             src={`/images/Proff_${profId}.png`} 
             alt={getProfName(profId)} 
-            style={{ width: "100%", height: "500px", objectFit: "cover", objectPosition: "top", borderBottom: "4px solid #161412" }} 
+            className="newsroom-hero-img"
           />
           
           <div style={{ marginTop: "35px" }}>
@@ -227,11 +376,11 @@ export default function NewsroomPage({ articles, onBack, onArticleClick }) {
               {getProfPosition(profId)}
             </div>
             
-            <h1 style={{ fontFamily: "Georgia, serif", fontSize: "48px", color: "#161412", margin: "0 0 15px 0", lineHeight: "1.1", letterSpacing: "-1px" }}>
+            <h1 className="newsroom-title">
               Intelligence Briefings by {getProfName(profId)}
             </h1>
             
-            <p style={{ fontFamily: "Georgia, serif", fontStyle: "italic", fontSize: "22px", color: "#5E574C", margin: "0 0 25px 0", lineHeight: "1.5" }}>
+            <p className="newsroom-desc">
               {getProfDescription(profId)}
             </p>
             
@@ -253,14 +402,14 @@ export default function NewsroomPage({ articles, onBack, onArticleClick }) {
               <div 
                 key={article.id} 
                 onClick={() => onArticleClick(article)}
-                style={{ display: "flex", gap: "25px", textDecoration: "none", color: "inherit", paddingBottom: "35px", borderBottom: "1px solid #EBE4D5", cursor: "pointer", flexDirection: window.innerWidth < 768 ? "column" : "row" }}
+                className="article-row"
               >
                 <img 
                   src={`/images/Proff_${profId}.png`} 
                   alt={getProfName(profId)} 
-                  style={{ width: window.innerWidth < 768 ? "100%" : "220px", height: "150px", objectFit: "cover", objectPosition: "top", flexShrink: 0, border: "1px solid #161412" }}
+                  className="article-img"
                 />
-                <div style={{ display: "flex", flexDirection: "column", justifyContent: "flex-start", flex: 1 }}>
+                <div className="article-content">
                   <div style={{ fontSize: "11px", color: "#8F7118", fontWeight: "bold", letterSpacing: "1px", textTransform: "uppercase", marginBottom: "10px" }}>
                     {article.category || "TECHNOLOGY"} &nbsp; {formatToEST(article.published).toUpperCase()}
                   </div>
@@ -272,18 +421,16 @@ export default function NewsroomPage({ articles, onBack, onArticleClick }) {
                   </p>
                   
                   {/* Updated Bottom Row: Listen & Submit Query Buttons */}
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "auto", flexWrap: "wrap", gap: "10px" }}>
+                  <div className="article-actions">
                     
-                    <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+                    <div className="article-btn-group">
                       <button 
+                        className="article-btn"
                         onClick={(e) => handleListen(e, article)}
                         style={{ 
                           backgroundColor: speakingArticleId === article.id ? "#161412" : "transparent", 
                           color: speakingArticleId === article.id ? "#F3EEE3" : "#161412", 
-                          border: "1px solid #161412", padding: "6px 14px", fontWeight: "bold", 
-                          cursor: "pointer", borderRadius: "3px", fontSize: "11px", display: "flex", 
-                          alignItems: "center", gap: "6px", transition: "all 0.2s",
-                          letterSpacing: "1px", textTransform: "uppercase"
+                          border: "1px solid #161412"
                         }}
                       >
                         <span>{speakingArticleId === article.id ? "■" : "▶"}</span> 
@@ -291,20 +438,17 @@ export default function NewsroomPage({ articles, onBack, onArticleClick }) {
                       </button>
 
                       <button 
+                        className="article-btn"
                         onClick={(e) => { e.stopPropagation(); setQueryArticle(article); }}
                         style={{ 
-                          backgroundColor: "#EBE4D5", color: "#161412", border: "none", 
-                          padding: "6px 14px", fontWeight: "bold", cursor: "pointer", 
-                          borderRadius: "3px", fontSize: "11px", display: "flex", 
-                          alignItems: "center", gap: "6px", transition: "background 0.2s",
-                          letterSpacing: "1px", textTransform: "uppercase"
+                          backgroundColor: "#EBE4D5", color: "#161412", border: "none"
                         }}
                       >
                         SUBMIT QUERY <span style={{ fontSize: "13px", fontWeight: "900" }}>?</span>
                       </button>
                     </div>
 
-                    <div style={{ fontSize: "10px", color: "#8F7118", fontWeight: "bold", letterSpacing: "1px", textTransform: "uppercase" }}>
+                    <div className="article-author-tag">
                       BY {getProfName(profId).toUpperCase()}, CORRESPONDENT
                     </div>
 

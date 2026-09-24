@@ -375,7 +375,7 @@ export default function Navbar({
         <a className="drawer-link" onClick={goHome}>Home</a>
         <a className="drawer-link" onClick={scrollToNewsroom}>Newsroom</a>
         <a className="drawer-link" onClick={(e) => handleNavClick(e, "/rss", onRss)}>RSS Feed</a>
-        <a className="drawer-link" onClick={(e) => handleNavClick(e, "/how", onAbout)}>About the desk</a>
+        <a className="drawer-link" onClick={(e) => handleNavClick(e, "/how", onAbout)}>About the Cyberbriefs</a>
         <a className="drawer-link" onClick={(e) => handleNavClick(e, "/blogs", onBlogs)}>Blogs</a>
         <a className="drawer-link" onClick={(e) => handleNavClick(e, "/books", onBooks)}>Books</a>
         <a className="drawer-link" onClick={(e) => handleNavClick(e, "/join", null)}>Careers</a>
@@ -400,7 +400,7 @@ export default function Navbar({
         </div>
  
         <div className="aggregate-top-right">
-          <a className="aggregate-top-link" href="/how" onClick={(e) => handleNavClick(e, "/how", onAbout)}>About the desk</a>
+          <a className="aggregate-top-link" href="/how" onClick={(e) => handleNavClick(e, "/how", onAbout)}>About the Cyberbrief</a>
           <a className="aggregate-top-link" href="/blogs" onClick={(e) => handleNavClick(e, "/blogs", onBlogs)}>Blogs</a>
           <a className="aggregate-top-link" href="/books" onClick={(e) => handleNavClick(e, "/books", onBooks)}>Books</a>
           <button className="aggregate-subscribe" type="button" onClick={(e) => { e.preventDefault(); if (onSubscribe) onSubscribe(); }}>Subscribe</button>

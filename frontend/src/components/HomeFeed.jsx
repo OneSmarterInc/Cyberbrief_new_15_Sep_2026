@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import NewsCard from "./NewsCard";
 import TheWire from "./TheWire";
 import { API_BASE_URL } from "../config";
+import { cleanSummary } from "../utils/summaryFilter";
 
 const PROF_NAMES = [
   "Arion Vale", "Lyra Sen", "Kael Nore", "Elara Quinn", 
@@ -199,7 +200,7 @@ export default function HomeFeed({
     window.speechSynthesis.cancel();
 
     const profId = parseInt(article.professor_id) || 1;
-    const textToSpeak = `${article?.ai_headline || article?.title || ""}. ${article?.summary || ""}`;
+    const textToSpeak = `${article?.ai_headline || article?.title || ""}. ${cleanSummary(article?.summary)}`;
     const utterance = new SpeechSynthesisUtterance(textToSpeak);
 
     const profile = STAFF_VOICE_PROFILES[profId] || STAFF_VOICE_PROFILES[1];
@@ -258,7 +259,7 @@ export default function HomeFeed({
     window.speechSynthesis.cancel();
 
     const profId = parseInt(selectedArticle.professor_id) || 1;
-    const textToSpeak = `${selectedArticle.ai_headline || selectedArticle.title || ""}. ${selectedArticle.summary || ""}`;
+    const textToSpeak = `${selectedArticle.ai_headline || selectedArticle.title || ""}. ${cleanSummary(selectedArticle.summary)}`;
     const utterance = new SpeechSynthesisUtterance(textToSpeak);
 
     const profile = STAFF_VOICE_PROFILES[profId] || STAFF_VOICE_PROFILES[1];
@@ -426,7 +427,9 @@ export default function HomeFeed({
                 }
               }
             `}</style>
-            <p style={{ fontSize: "18px", color: "#161412", lineHeight: "1.8", margin: "0 0 50px 0", fontFamily: "Arial, sans-serif" }}>{selectedArticle.summary || "No summary is available for this article at this time. Click the original article link below to read the full coverage."}</p>
+            <p style={{ fontSize: "18px", color: "#161412", lineHeight: "1.8", margin: "0 0 50px 0", fontFamily: "Arial, sans-serif" }}>
+              {cleanSummary(selectedArticle.summary)}
+            </p>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid #C9C1B0", paddingTop: "25px", flexWrap: "wrap", gap: "20px" }}>
               
               <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
@@ -585,6 +588,7 @@ export default function HomeFeed({
                         {morningArticles.map((article) => {
                           const randomSources = Math.floor(Math.random() * 5) + 3;
                           const displayImage = getArticleImage(article);
+                          const cleanedSummarySnippet = cleanSummary(article.summary);
 
                           return (
                             <div onClick={() => handleOpenArticle(article)} key={article.id} className="clickable-card" style={{ flexDirection: "column", height: "100%" }}>
@@ -620,7 +624,7 @@ export default function HomeFeed({
                               </div>
 
                               <h3 style={{ fontFamily: "Georgia, serif", fontSize: "18px", margin: "0 0 10px 0", lineHeight: 1.3 }}>{article.ai_headline || article.title}</h3>
-                              <p style={{ fontSize: "14px", color: "#5E574C", lineHeight: 1.5, marginBottom: "20px", flex: 1 }}>{article.summary ? article.summary.substring(0, 120) + "..." : "No summary available."}</p>
+                              <p style={{ fontSize: "14px", color: "#5E574C", lineHeight: 1.5, marginBottom: "20px", flex: 1 }}>{cleanedSummarySnippet.length > 120 ? cleanedSummarySnippet.substring(0, 120) + "..." : cleanedSummarySnippet}</p>
                               
                               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid #C9C1B0", paddingTop: "12px", marginTop: "auto" }}>
                                 <span style={{ fontSize: "12px", color: "#5E574C", display: "flex", alignItems: "center", gap: "6px" }}>

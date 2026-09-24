@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { API_BASE_URL } from "../config";
+import { cleanSummary } from "../utils/summaryFilter";
 
 const PROF_NAMES = [
   "Arion Vale", "Lyra Sen", "Kael Nore", "Elara Quinn", 
@@ -155,7 +156,7 @@ export default function NewsroomPage({ articles, onBack, onArticleClick }) {
 
     window.speechSynthesis.cancel();
 
-    const textToSpeak = `${article?.original_title || article?.title || ""}. ${article?.summary || ""}`;
+    const textToSpeak = `${article?.original_title || article?.title || ""}. ${cleanSummary(article?.summary)}`;
     const utterance = new SpeechSynthesisUtterance(textToSpeak);
 
     const profile = STAFF_VOICE_PROFILES[profId] || STAFF_VOICE_PROFILES[1];
@@ -466,62 +467,67 @@ export default function NewsroomPage({ articles, onBack, onArticleClick }) {
 
         <div style={{ display: "flex", flexDirection: "column", gap: "35px" }}>
           {currentArticles.length > 0 ? (
-            currentArticles.map(article => (
-              <div 
-                key={article.id} 
-                onClick={() => onArticleClick(article)}
-                className="article-row"
-              >
-                <img 
-                  src={`/images/Proff_${profId}.png`} 
-                  alt={getProfName(profId)} 
-                  className="article-img"
-                />
-                <div className="article-content">
-                  <div style={{ fontSize: "11px", color: "#8F7118", fontWeight: "bold", letterSpacing: "1px", textTransform: "uppercase", marginBottom: "10px" }}>
-                    {article.category || "TECHNOLOGY"} &nbsp; {formatToEST(article.published).toUpperCase()}
-                  </div>
-                  <h3 style={{ fontFamily: "Georgia, serif", fontSize: "24px", margin: "0 0 12px 0", color: "#161412", lineHeight: "1.2" }}>
-                    {article.original_title || article.title}
-                  </h3>
-                  <p style={{ fontFamily: "Georgia, serif", fontStyle: "italic", fontSize: "16px", color: "#5E574C", margin: "0 0 15px 0", lineHeight: "1.5" }}>
-                    {article.summary ? article.summary.substring(0, 180) + "..." : "Summary unavailable."}
-                  </p>
-                  
-                  {/* Action Buttons */}
-                  <div className="article-actions">
-                    <div className="article-btn-group">
-                      <button 
-                        className="article-btn"
-                        onClick={(e) => handleListen(e, article)}
-                        style={{ 
-                          backgroundColor: speakingArticleId === article.id ? "#161412" : "transparent", 
-                          color: speakingArticleId === article.id ? "#F3EEE3" : "#161412", 
-                          border: "1px solid #161412"
-                        }}
-                      >
-                        <span>{speakingArticleId === article.id ? "■" : "▶"}</span> 
-                        {speakingArticleId === article.id ? "STOP READING" : `LISTEN`}
-                      </button>
+            currentArticles.map(article => {
+              const cleanedSummary = cleanSummary(article.summary);
+              const summarySnippet = cleanedSummary.length > 180 ? cleanedSummary.substring(0, 180) + "..." : cleanedSummary;
 
-                      <button 
-                        className="article-btn"
-                        onClick={(e) => { e.stopPropagation(); setQueryArticle(article); }}
-                        style={{ 
-                          backgroundColor: "#EBE4D5", color: "#161412", border: "none"
-                        }}
-                      >
-                        SUBMIT QUERY <span style={{ fontSize: "13px", fontWeight: "900" }}>?</span>
-                      </button>
+              return (
+                <div 
+                  key={article.id} 
+                  onClick={() => onArticleClick(article)}
+                  className="article-row"
+                >
+                  <img 
+                    src={`/images/Proff_${profId}.png`} 
+                    alt={getProfName(profId)} 
+                    className="article-img"
+                  />
+                  <div className="article-content">
+                    <div style={{ fontSize: "11px", color: "#8F7118", fontWeight: "bold", letterSpacing: "1px", textTransform: "uppercase", marginBottom: "10px" }}>
+                      {article.category || "TECHNOLOGY"} &nbsp; {formatToEST(article.published).toUpperCase()}
                     </div>
+                    <h3 style={{ fontFamily: "Georgia, serif", fontSize: "24px", margin: "0 0 12px 0", color: "#161412", lineHeight: "1.2" }}>
+                      {article.original_title || article.title}
+                    </h3>
+                    <p style={{ fontFamily: "Georgia, serif", fontStyle: "italic", fontSize: "16px", color: "#5E574C", margin: "0 0 15px 0", lineHeight: "1.5" }}>
+                      {summarySnippet}
+                    </p>
+                    
+                    {/* Action Buttons */}
+                    <div className="article-actions">
+                      <div className="article-btn-group">
+                        <button 
+                          className="article-btn"
+                          onClick={(e) => handleListen(e, article)}
+                          style={{ 
+                            backgroundColor: speakingArticleId === article.id ? "#161412" : "transparent", 
+                            color: speakingArticleId === article.id ? "#F3EEE3" : "#161412", 
+                            border: "1px solid #161412"
+                          }}
+                        >
+                          <span>{speakingArticleId === article.id ? "■" : "▶"}</span> 
+                          {speakingArticleId === article.id ? "STOP READING" : `LISTEN`}
+                        </button>
 
-                    <div className="article-author-tag">
-                      BY {getProfName(profId).toUpperCase()}, CORRESPONDENT
+                        <button 
+                          className="article-btn"
+                          onClick={(e) => { e.stopPropagation(); setQueryArticle(article); }}
+                          style={{ 
+                            backgroundColor: "#EBE4D5", color: "#161412", border: "none"
+                          }}
+                        >
+                          SUBMIT QUERY <span style={{ fontSize: "13px", fontWeight: "900" }}>?</span>
+                        </button>
+                      </div>
+
+                      <div className="article-author-tag">
+                        BY {getProfName(profId).toUpperCase()}, CORRESPONDENT
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            ))
+              );
+            })
           ) : (
             <div style={{ textAlign: "center", padding: "60px", color: "#5E574C", fontStyle: "italic", fontSize: "18px" }}>
               No articles are currently assigned to {getProfName(profId)}'s desk.

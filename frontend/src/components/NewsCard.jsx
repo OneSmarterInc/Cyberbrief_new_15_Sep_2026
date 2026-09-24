@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { API_BASE_URL } from "../config";
+import { cleanSummary } from "../utils/summaryFilter";
 
 const PROF_NAMES = [
   "Arion Vale", "Lyra Sen", "Kael Nore", "Elara Quinn", 
@@ -85,13 +86,14 @@ export default function NewsCard({ article, index, onArticleClick }) {
   const fullName = getProfName(profId);
   const articleImage = `/images/Proff_${profId}.png`;
 
-  const getTruncatedSummary = (text) => {
-    if (!text) return "Summary unavailable.";
-    const words = text.split(/\s+/);
+  // VALIDATION & FILTERING: Clean and check summary length using summaryFilter logic
+  const getProcessedSummary = (text) => {
+    const cleaned = cleanSummary(text);
+    const words = cleaned.split(/\s+/);
     if (words.length > 50) {
       return words.slice(0, 50).join(" ") + "...";
     }
-    return text;
+    return cleaned;
   };
 
   const handleListen = () => {
@@ -110,7 +112,7 @@ export default function NewsCard({ article, index, onArticleClick }) {
     window.dispatchEvent(new CustomEvent("stop-other-audio", { detail: article?.id }));
     window.speechSynthesis.cancel();
 
-    const textToSpeak = `${article?.ai_headline || article?.title || ""}. ${article?.summary || ""}`;
+    const textToSpeak = `${article?.ai_headline || article?.title || ""}. ${cleanSummary(article?.summary)}`;
     const utterance = new SpeechSynthesisUtterance(textToSpeak);
 
     const profile = STAFF_VOICE_PROFILES[profId] || STAFF_VOICE_PROFILES[1];
@@ -266,7 +268,7 @@ export default function NewsCard({ article, index, onArticleClick }) {
           <h2>{article?.title || article?.original_title || "Untitled Article"}</h2>
           <div className="rule" />
           
-          <p>{getTruncatedSummary(article?.summary)}</p>
+          <p>{getProcessedSummary(article?.summary)}</p>
 
           {/* ADDED zIndex: 2 to ensure buttons are strictly on top of the card's click area */}
           <div className="card-bottom" style={{ display: "flex", gap: "10px", flexWrap: "wrap", alignItems: "center", marginTop: "auto", paddingTop: "15px", position: "relative", zIndex: 2 }}>

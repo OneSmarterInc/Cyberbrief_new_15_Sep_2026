@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { API_BASE_URL } from "../config";
+import { cleanSummary } from "../utils/summaryFilter";
 
 const feedImages = [
   "/images/Feed_1.jpg", "/images/Feed_2.jpg", "/images/Feed_3.jpg",
@@ -129,9 +130,10 @@ export default function RssFeedPage({ articles, onBack }) {
       if (a.source !== selectedSource) return false;
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
+        const cleanedSum = cleanSummary(a.summary).toLowerCase();
         return (
           (a.original_title || a.title || "").toLowerCase().includes(query) ||
-          (a.summary || "").toLowerCase().includes(query)
+          cleanedSum.includes(query)
         );
       }
       return true;
@@ -189,7 +191,7 @@ export default function RssFeedPage({ articles, onBack }) {
     window.speechSynthesis.cancel();
 
     const profId = parseInt(article.professor_id) || 1;
-    const textToSpeak = `${article?.original_title || article?.title || ""}. ${article?.summary || ""}`;
+    const textToSpeak = `${article?.original_title || article?.title || ""}. ${cleanSummary(article?.summary)}`;
     const utterance = new SpeechSynthesisUtterance(textToSpeak);
 
     const profile = STAFF_VOICE_PROFILES[profId] || STAFF_VOICE_PROFILES[1];
@@ -571,7 +573,7 @@ export default function RssFeedPage({ articles, onBack }) {
 
                   <div style={{ padding: "40px", backgroundColor: "#F3EEE3" }}>
                     <p style={{ fontSize: "18px", color: "#161412", lineHeight: "1.8", margin: "0 0 50px 0", fontFamily: "Arial, sans-serif" }}>
-                      {selectedArticle.summary || "No summary is available for this article at this time. Click the original article link below to read the full coverage."}
+                      {cleanSummary(selectedArticle.summary)}
                     </p>
                     
                     <div className="rss-detail-actions">
@@ -709,6 +711,8 @@ export default function RssFeedPage({ articles, onBack }) {
               ) : (
                 sourceArticles.map((article) => {
                   const displayImage = getArticleImage(article);
+                  const cleanedSummary = cleanSummary(article.summary);
+                  const summarySnippet = cleanedSummary.length > 300 ? cleanedSummary.substring(0, 300) + "..." : cleanedSummary;
                   
                   return (
                     <div 
@@ -743,9 +747,7 @@ export default function RssFeedPage({ articles, onBack }) {
                         </div>
                         
                         <p style={{ fontSize: "15px", color: "#5E574C", lineHeight: "1.6", margin: 0 }}>
-                          {article.summary 
-                            ? (article.summary.length > 300 ? article.summary.substring(0, 300) + "..." : article.summary) 
-                            : "No summary available for this article."}
+                          {summarySnippet}
                         </p>
 
                         <div className="article-btn-group">

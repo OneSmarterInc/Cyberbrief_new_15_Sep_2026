@@ -28,7 +28,7 @@ const formatTimeSeconds = (secs) => {
 };
 
 export default function Navbar({ 
-  selectedCategory, setSelectedCategory, user, onSignin, 
+  selectedCategory, setSelectedCategory, user, onSignin, onLogout,
   onHome, onRss, onAbout, onBlogs, onBooks, onAdmin, onSubscribe, 
   latestHeadline, latestSummary, latestPublished, latestSource, latestCategory, latestId,
   totalStories = 0, totalSources = 0, onSearch 
@@ -90,24 +90,21 @@ export default function Navbar({
     setDrawerOpen(false);
     
     const triggerScroll = () => {
-      // Look for the "Meet the Newsroom" heading block dynamically
       const headings = Array.from(document.querySelectorAll('h2'));
       const newsroomHeading = headings.find(h => h.textContent.includes('Meet the Newsroom') || h.textContent.includes('Newsroom'));
       
       if (newsroomHeading) {
         newsroomHeading.scrollIntoView({ behavior: "smooth", block: "start" });
       } else {
-        // Fallback: Scroll near the bottom of the page
         window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
       }
     };
 
-    // If we are not on the homepage, route to homepage first, then scroll
     if (window.location.pathname !== "/" && window.location.pathname !== "") {
       goHome();
-      setTimeout(triggerScroll, 400); // Give React time to render the homepage
+      setTimeout(triggerScroll, 400); 
     } else {
-      triggerScroll(); // Already on homepage, scroll immediately
+      triggerScroll(); 
     }
   };
 
@@ -127,11 +124,9 @@ export default function Navbar({
       return;
     }
 
-    // Stop any active SpeechSynthesis on news cards before starting navbar briefing audio
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel();
     }
-    // Also notify any active cards to switch off their listen state
     window.dispatchEvent(new CustomEvent("stop-other-audio", { detail: "navbar-audio" }));
 
     const textToSpeak = latestSummary || latestHeadline || "Latest news is loading.";
@@ -172,12 +167,10 @@ export default function Navbar({
     window.audioPlayer.onerror = () => {
       setIsBuffering(false);
       setSpeaking(false);
-      console.error("Failed to load audio from backend.");
     };
   
     window.audioPlayer.play().catch(e => {
       setIsBuffering(false);
-      console.error("Audio playback prevented:", e);
     });
   };
 
@@ -290,14 +283,13 @@ export default function Navbar({
         .side-drawer-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); z-index: 9998; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
         .side-drawer-overlay.open { opacity: 1; pointer-events: auto; }
  
-        /* SIDE DRAWER FIX: 100dvh prevents clipping on mobile browser UI */
         .side-drawer { 
           position: fixed; 
           top: 0; 
           left: -320px; 
           width: 290px; 
-          height: 100vh; /* Fallback */
-          height: 100dvh; /* Dynamic Viewport for Mobile */
+          height: 100vh; 
+          height: 100dvh; 
           background: #161412; 
           color: #F3EEE3; 
           z-index: 9999; 
@@ -315,33 +307,28 @@ export default function Navbar({
         .drawer-link { display: block; color: #F3EEE3; text-decoration: none; font-size: 21px; font-family: Georgia, serif; padding: 14px 0; border-bottom: 1px solid #332F2C; cursor: pointer; transition: color 0.2s ease, padding-left 0.2s ease; }
         .drawer-link:hover { color: #C9A227; padding-left: 9px; }
  
-        /* RESPONSIVE BREAKPOINTS */
         @media (max-width: 980px) {
           .aggregate-briefing-inner { grid-template-columns: 1fr; gap: 15px; }
           .aggregate-player-container { max-width: 100%; gap: 6px; }
         }
         
         @media (max-width: 760px) {
-          /* Increased Mobile Topbar Height & Font Size */
           .aggregate-topbar { padding: 8px 14px; min-height: 44px; flex-wrap: nowrap; }
           .aggregate-top-left { font-size: 13px; align-items: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; width: 100%; flex-wrap: nowrap; gap: 8px; padding: 0; }
           .aggregate-top-left-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
           .hamburger-icon { padding-right: 8px; margin: 0; font-size: 24px; } 
           .aggregate-top-right { display: none; }
           
-          /* Increased Mobile Masthead Logo & Title Size */
           .aggregate-masthead { padding: 16px 15px; }
           .aggregate-brand { font-size: clamp(32px, 9vw, 48px); letter-spacing: -1.5px; }
           .aggregate-logo-img { width: 44px; height: 44px; }
           
-          /* Briefing Texts */
           .aggregate-briefing { padding: 12px 0; }
           .aggregate-briefing-inner { gap: 12px; }
           .aggregate-briefing-label { margin-bottom: 2px; font-size: 11px; }
           .aggregate-briefing-title { font-size: 19px; margin: 3px 0; line-height: 1.25; }
           .aggregate-briefing-summary { font-size: 13px; line-height: 1.4; margin-bottom: 6px; }
           
-          /* Player & Buttons */
           .aggregate-player { min-height: 36px; padding: 6px 10px; }
           .aggregate-play { width: 28px; height: 28px; font-size: 11px; }
           
@@ -351,15 +338,6 @@ export default function Navbar({
 
           .action-buttons-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 0; }
           .action-btn { padding: 8px; font-size: 11px; width: 100%; min-width: 0; }
-        }
-
-        @media (max-width: 480px) {
-          .aggregate-player-main { flex-direction: row; align-items: center; gap: 8px; }
-          .aggregate-progress { width: 100%; }
-        }
-
-        @media (prefers-reduced-motion: reduce) {
-          .aggregate-clone *, .aggregate-clone *::after, .aggregate-clone *::before { transition: none !important; }
         }
       `}</style>
 
@@ -380,6 +358,29 @@ export default function Navbar({
         <a className="drawer-link" onClick={(e) => handleNavClick(e, "/books", onBooks)}>Books</a>
         <a className="drawer-link" onClick={(e) => handleNavClick(e, "/join", null)}>Careers</a>
         
+        {/* Mobile Authentication State: Only show Sign In if logged out */}
+        {!user ? (
+          <a className="drawer-link" style={{ color: "#C9A227", marginTop: "15px" }} onClick={(e) => handleNavClick(e, "/login", onSignin)}>Sign In</a>
+        ) : (
+          <>
+            <div 
+              className="drawer-link" 
+              style={{ color: "#C9A227", marginTop: "15px", cursor: "default", display: "flex", alignItems: "center", gap: "8px" }}
+              title="now you are capable to use our ai agent to help you"
+            >
+              {/* Professional User Silhouette Icon SVG */}
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                <circle cx="12" cy="7" r="4"></circle>
+              </svg>
+              <span>{user.username || user.email}</span>
+            </div>
+            <a className="drawer-link" style={{ color: "#D32F2F" }} onClick={(e) => { setDrawerOpen(false); if (onLogout) onLogout(); }}>
+              Sign Out
+            </a>
+          </>
+        )}
+
         <div style={{ marginTop: "auto", paddingTop: "30px", paddingBottom: "20px" }}>
           <button 
             className="aggregate-subscribe" 
@@ -403,6 +404,32 @@ export default function Navbar({
           <a className="aggregate-top-link" href="/how" onClick={(e) => handleNavClick(e, "/how", onAbout)}>About the Cyberbriefs</a>
           <a className="aggregate-top-link" href="/blogs" onClick={(e) => handleNavClick(e, "/blogs", onBlogs)}>Blogs</a>
           <a className="aggregate-top-link" href="/books" onClick={(e) => handleNavClick(e, "/books", onBooks)}>Books</a>
+          
+          {/* Desktop Authentication State: Only show Sign In if logged out */}
+          {!user ? (
+            <a className="aggregate-top-link" href="/login" onClick={(e) => handleNavClick(e, "/login", onSignin)}>Sign In</a>
+          ) : (
+            <div style={{ display: "flex", alignItems: "center", gap: "10px", paddingLeft: "13px", paddingRight: "13px" }}>
+              <span 
+                style={{ fontSize: "13px", fontWeight: "bold", color: "#161412", display: "flex", alignItems: "center", gap: "6px", cursor: "help" }}
+                title="now you are capable to use our ai agent to help you"
+              >
+                {/* Professional User Silhouette Icon SVG */}
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+                {user.username || user.email}
+              </span>
+              <button 
+                onClick={onLogout} 
+                style={{ background: "none", border: "1px solid #161412", padding: "4px 8px", fontSize: "11px", fontWeight: "bold", cursor: "pointer", color: "#161412" }}
+              >
+                SIGN OUT
+              </button>
+            </div>
+          )}
+
           <button className="aggregate-subscribe" type="button" onClick={(e) => { e.preventDefault(); if (onSubscribe) onSubscribe(); }}>Subscribe</button>
         </div>
       </div>

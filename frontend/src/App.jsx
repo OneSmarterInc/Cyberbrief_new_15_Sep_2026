@@ -14,6 +14,8 @@ import BookPage from "./components/BookPage";
 import RssFeedPage from "./components/RssFeedPage";
 import NewsroomPage from "./components/NewsroomPage"; 
 import JoinNewswire from "./components/JoinNewswire";
+import CyberbriefChat from "./components/CyberbriefChat";
+import { isValidArticle } from "./utils/summaryFilter";
 
 const TOKEN_KEY = "newsai_token";
 const USER_KEY = "newsai_user";
@@ -147,7 +149,7 @@ export default function App() {
     sessionStorage.removeItem(USER_KEY);
     setToken(null);
     setUser(null);
-    navigate("/login");
+    navigate("/");
   };
 
   const handleCategorySelect = (category) => {
@@ -231,8 +233,8 @@ export default function App() {
   };
 
   const filteredArticles = useMemo(() => {
-    // Added safety check (a &&) to prevent undefined crashes
-    let activeArticles = articles.filter(a => a && a.is_active !== false); 
+    let activeArticles = articles.filter(a => a && a.is_active !== false && isValidArticle(a)); 
+    
     if (selectedCategory !== "All") {
       activeArticles = activeArticles.filter((article) => (article?.category || "").toLowerCase() === selectedCategory.toLowerCase());
     }
@@ -254,8 +256,7 @@ export default function App() {
   const currentArticles = filteredArticles.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
   
   const mostCoveredArticles = useMemo(() => {
-    // Added safety check (a &&)
-    const active = articles.filter(a => a && a.is_active !== false);
+    const active = articles.filter(a => a && a.is_active !== false && isValidArticle(a));
     let morning = active.filter(a => {
       if (!a.published) return false;
       const hours = new Date(a.published).getHours();
@@ -269,8 +270,7 @@ export default function App() {
   }, [articles]);
 
   const inBriefArticles = useMemo(() => {
-    // Added safety check (a &&)
-    const active = articles.filter(a => a && a.is_active !== false);
+    const active = articles.filter(a => a && a.is_active !== false && isValidArticle(a));
     const available = active.filter(a => !mostCoveredArticles.includes(a));
     return [...available].sort(() => 0.5 - Math.random()).slice(0, 8);
   }, [articles, mostCoveredArticles]);
@@ -285,11 +285,10 @@ export default function App() {
     if (screen === "cookies") navigate("/cookies");
   };
 
-  // Added safety check (a &&)
-  const globalActiveCount = useMemo(() => articles.filter(a => a && a.is_active !== false).length, [articles]);
+  const globalActiveCount = useMemo(() => articles.filter(a => a && a.is_active !== false && isValidArticle(a)).length, [articles]);
   const activeSourcesCount = useMemo(() => {
     if (totalSources > 0) return totalSources;
-    return new Set(articles.filter(a => a).map(a => a.source)).size;
+    return new Set(articles.filter(a => a && a.is_active !== false && isValidArticle(a)).map(a => a.source)).size;
   }, [articles, totalSources]);
 
   return (
@@ -300,6 +299,7 @@ export default function App() {
           setSelectedCategory={handleCategorySelect} 
           user={user}
           onSignin={() => navigate("/login")}
+          onLogout={handleLogout}
           onHome={handleHome} 
           onRss={() => navigate("/rss")}
           onAbout={() => navigate("/how")}
@@ -360,6 +360,11 @@ export default function App() {
 
       {authScreen !== "admin" && authScreen !== "login" && (
         <Footer currentYear={currentYear} setAuthScreen={handleFooterNavigation} />
+      )}
+
+      {/* RENDER THE CHATBOT ONLY WHEN USER IS LOGGED IN */}
+      {user && authScreen !== "admin" && authScreen !== "login" && (
+        <CyberbriefChat articles={articles} />
       )}
 
       {showSubPopup && (

@@ -1,9 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import Navbar from "./components/Navbar";
-import LoginScreen from "./components/LoginScreen";
 import { API_BASE_URL } from "./config";
 import AboutDesk from "./components/AboutDesk";
 import AdminDashboard from "./components/AdminDashboard";
+import LoginScreen from "./components/LoginScreen"; // <-- Imported back for Admin use
 import PrivacyPolicy from "./components/PrivacyPolicy";
 import TermsOfUse from "./components/TermsOfUse";
 import CookieSettings from "./components/CookieSettings";
@@ -14,7 +14,6 @@ import BookPage from "./components/BookPage";
 import RssFeedPage from "./components/RssFeedPage";
 import NewsroomPage from "./components/NewsroomPage"; 
 import JoinNewswire from "./components/JoinNewswire";
-import CyberbriefChat from "./components/CyberbriefChat";
 import { isValidArticle } from "./utils/summaryFilter";
 
 const TOKEN_KEY = "newsai_token";
@@ -31,7 +30,7 @@ export default function App() {
   const [authScreen, setAuthScreen] = useState(() => {
     const savedScreen = sessionStorage.getItem("newsai_screen");
     const savedUser = JSON.parse(sessionStorage.getItem(USER_KEY) || "null");
-    if (savedScreen === "admin" && (!savedUser || !savedUser.is_admin)) return null;
+    if (savedScreen === "admin" && (!savedUser || !savedUser.is_admin)) return "admin_login";
     return savedScreen || null;
   });
 
@@ -85,11 +84,9 @@ export default function App() {
         if (currentToken && savedUser && savedUser.is_admin) {
           setAuthScreen("admin");
         } else {
-          window.history.replaceState({}, "", "/login");
-          setAuthScreen("login");
+          // Trigger the secure Admin Login screen if not authenticated
+          setAuthScreen("admin_login");
         }
-      } else if (path === "/login") {
-        setAuthScreen("login");
       } else if (path === "/blogs" || path === "/blog") {
         setAuthScreen("blog");
       } else if (path === "/books" || path === "/book") { 
@@ -133,23 +130,14 @@ export default function App() {
     };
   }, []);
 
+  // Handle successful Admin Login
   const saveSession = async (data) => {
     setToken(data.token);
     setUser(data.user);
     sessionStorage.setItem(TOKEN_KEY, data.token);
     sessionStorage.setItem(USER_KEY, JSON.stringify(data.user));
-    localStorage.removeItem(TOKEN_KEY);
-    localStorage.removeItem(USER_KEY);
-    if (data.user?.is_admin) navigate("/admin");
-    else navigate("/");
-  };
-
-  const handleLogout = () => {
-    sessionStorage.removeItem(TOKEN_KEY);
-    sessionStorage.removeItem(USER_KEY);
-    setToken(null);
-    setUser(null);
-    navigate("/");
+    setAuthScreen("admin");
+    window.history.replaceState({}, "", "/admin");
   };
 
   const handleCategorySelect = (category) => {
@@ -293,20 +281,16 @@ export default function App() {
 
   return (
     <div className="app" style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
-      {authScreen !== "admin" && (
+      {authScreen !== "admin" && authScreen !== "admin_login" && (
         <Navbar
           selectedCategory={selectedCategory}
           setSelectedCategory={handleCategorySelect} 
-          user={user}
-          onSignin={() => navigate("/login")}
-          onLogout={handleLogout}
           onHome={handleHome} 
           onRss={() => navigate("/rss")}
           onAbout={() => navigate("/how")}
           onBlogs={() => navigate("/blogs")}
           onBooks={() => navigate("/books")}
           onNewsroom={() => navigate("/newsroom")}
-          onAdmin={() => navigate("/admin")} 
           onSubscribe={() => setShowSubPopup(true)} 
           onSearch={handleSearch} 
           latestHeadline={latestArticle?.title || ""}
@@ -319,7 +303,7 @@ export default function App() {
       )}
 
       <div style={{ flex: 1 }}>
-        {authScreen === "login" ? <LoginScreen onLogin={saveSession} onBack={() => navigate("/")} />
+        {authScreen === "admin_login" ? <LoginScreen onLogin={saveSession} onBack={() => navigate("/")} />
         : authScreen === "blog" ? <BlogPage onBack={() => navigate("/")} />
         : authScreen === "book" ? <BookPage onBack={() => navigate("/")} />
         : authScreen === "join" ? <JoinNewswire onBack={() => navigate("/")} />
@@ -337,7 +321,19 @@ export default function App() {
         : authScreen === "privacy" ? <PrivacyPolicy onBack={() => navigate("/")} />
         : authScreen === "terms" ? <TermsOfUse onBack={() => navigate("/")} />
         : authScreen === "cookies" ? <CookieSettings onBack={() => navigate("/")} />
-        : authScreen === "admin" && user?.is_admin ? <AdminDashboard user={user} articles={articles} token={token} onRefresh={() => fetchNews(true)} onBack={() => navigate("/")} onLogout={handleLogout} />
+        : authScreen === "admin" && user?.is_admin ? (
+            <AdminDashboard 
+              user={user} 
+              articles={articles} 
+              token={token} 
+              onRefresh={() => fetchNews(true)} 
+              onBack={() => navigate("/")} 
+              onLogout={() => {
+                sessionStorage.clear();
+                window.location.href = "/";
+              }}
+            />
+          )
         : (
           <HomeFeed 
             selectedCategory={selectedCategory} 
@@ -358,13 +354,8 @@ export default function App() {
         )}
       </div>
 
-      {authScreen !== "admin" && authScreen !== "login" && (
+      {authScreen !== "admin" && authScreen !== "admin_login" && (
         <Footer currentYear={currentYear} setAuthScreen={handleFooterNavigation} />
-      )}
-
-      {/* RENDER THE CHATBOT ONLY WHEN USER IS LOGGED IN */}
-      {user && authScreen !== "admin" && authScreen !== "login" && (
-        <CyberbriefChat articles={articles} />
       )}
 
       {showSubPopup && (

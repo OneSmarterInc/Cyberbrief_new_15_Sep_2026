@@ -32,6 +32,20 @@ const STAFF_VOICE_PROFILES = {
   8: { gender: "female", pitch: 1.20, rate: 0.90, voiceOffset: 0 }
 };
 
+const formatToMMDDYYYY = (dateString) => {
+  if (!dateString) return "";
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return dateString; 
+    const mm = String(date.getMonth() + 1).padStart(2, '0');
+    const dd = String(date.getDate()).padStart(2, '0');
+    const yyyy = date.getFullYear();
+    return `${mm}-${dd}-${yyyy}`;
+  } catch (e) {
+    return dateString;
+  }
+};
+
 export default function RssFeedPage({ articles, onBack }) {
   const [selectedSource, setSelectedSource] = useState(() => {
     return new URLSearchParams(window.location.search).get("source") || null;
@@ -569,7 +583,7 @@ export default function RssFeedPage({ articles, onBack }) {
                             {sourceName} • {getProfName(selectedArticle.professor_id).toUpperCase()}
                           </div>
                           <div style={{ fontSize: "13px", color: "#C9C1B0", marginTop: "2px" }}>
-                            {selectedArticle.published || "Recently Added"}
+                            {selectedArticle.published ? formatToMMDDYYYY(selectedArticle.published) : "Recently Added"}
                           </div>
                         </div>
                       </div>
@@ -748,7 +762,7 @@ export default function RssFeedPage({ articles, onBack }) {
                         </h3>
                         
                         <div style={{ fontSize: "13px", color: "#8F7118", fontWeight: "bold", marginBottom: "12px" }}>
-                          {article.published || "Recent"} • {getProfName(article.professor_id).toUpperCase()}
+                          {article.published ? formatToMMDDYYYY(article.published) : "Recent"} • {getProfName(article.professor_id).toUpperCase()}
                         </div>
                         
                         <p style={{ fontSize: "15px", color: "#5E574C", lineHeight: "1.6", margin: 0 }}>

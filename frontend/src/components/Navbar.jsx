@@ -28,7 +28,7 @@ const formatTimeSeconds = (secs) => {
 };
 
 export default function Navbar({ 
-  selectedCategory, setSelectedCategory, user, onSignin, onLogout,
+  selectedCategory, setSelectedCategory,
   onHome, onRss, onAbout, onBlogs, onBooks, onAdmin, onSubscribe, 
   latestHeadline, latestSummary, latestPublished, latestSource, latestCategory, latestId,
   totalStories = 0, totalSources = 0, onSearch 
@@ -357,29 +357,6 @@ export default function Navbar({
         <a className="drawer-link" onClick={(e) => handleNavClick(e, "/blogs", onBlogs)}>Blogs</a>
         <a className="drawer-link" onClick={(e) => handleNavClick(e, "/books", onBooks)}>Books</a>
         <a className="drawer-link" onClick={(e) => handleNavClick(e, "/join", null)}>Careers</a>
-        
-        {/* Mobile Authentication State: Only show Sign In if logged out */}
-        {!user ? (
-          <a className="drawer-link" style={{ color: "#C9A227", marginTop: "15px" }} onClick={(e) => handleNavClick(e, "/login", onSignin)}>Sign In</a>
-        ) : (
-          <>
-            <div 
-              className="drawer-link" 
-              style={{ color: "#C9A227", marginTop: "15px", cursor: "default", display: "flex", alignItems: "center", gap: "8px" }}
-              title="now you are capable to use our ai agent to help you"
-            >
-              {/* Professional User Silhouette Icon SVG */}
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                <circle cx="12" cy="7" r="4"></circle>
-              </svg>
-              <span>{user.username || user.email}</span>
-            </div>
-            <a className="drawer-link" style={{ color: "#D32F2F" }} onClick={(e) => { setDrawerOpen(false); if (onLogout) onLogout(); }}>
-              Sign Out
-            </a>
-          </>
-        )}
 
         <div style={{ marginTop: "auto", paddingTop: "30px", paddingBottom: "20px" }}>
           <button 
@@ -405,32 +382,7 @@ export default function Navbar({
           <a className="aggregate-top-link" href="/blogs" onClick={(e) => handleNavClick(e, "/blogs", onBlogs)}>Blogs</a>
           <a className="aggregate-top-link" href="/books" onClick={(e) => handleNavClick(e, "/books", onBooks)}>Books</a>
           
-          {/* Desktop Authentication State: Only show Sign In if logged out */}
-          {!user ? (
-            <a className="aggregate-top-link" href="/login" onClick={(e) => handleNavClick(e, "/login", onSignin)}>Sign In</a>
-          ) : (
-            <div style={{ display: "flex", alignItems: "center", gap: "10px", paddingLeft: "13px", paddingRight: "13px" }}>
-              <span 
-                style={{ fontSize: "13px", fontWeight: "bold", color: "#161412", display: "flex", alignItems: "center", gap: "6px", cursor: "help" }}
-                title="now you are capable to use our ai agent to help you"
-              >
-                {/* Professional User Silhouette Icon SVG */}
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                  <circle cx="12" cy="7" r="4"></circle>
-                </svg>
-                {user.username || user.email}
-              </span>
-              <button 
-                onClick={onLogout} 
-                style={{ background: "none", border: "1px solid #161412", padding: "4px 8px", fontSize: "11px", fontWeight: "bold", cursor: "pointer", color: "#161412" }}
-              >
-                SIGN OUT
-              </button>
-            </div>
-          )}
-
-          <button className="aggregate-subscribe" type="button" onClick={(e) => { e.preventDefault(); if (onSubscribe) onSubscribe(); }}>Subscribe</button>
+          <button className="aggregate-subscribe" type="button" style={{ marginLeft: "10px" }} onClick={(e) => { e.preventDefault(); if (onSubscribe) onSubscribe(); }}>Subscribe</button>
         </div>
       </div>
 

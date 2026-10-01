@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { API_BASE_URL } from "../config";
 
 export default function LoginScreen({ onLogin, onBack }) {
-  const [view, setView] = useState("LOGIN"); // LOGIN, REGISTER, FORGOT, RESET_CONFIRM, SETUP, VERIFY
+  const [view, setView] = useState("LOGIN"); // LOGIN, FORGOT, RESET_CONFIRM, SETUP, VERIFY
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -79,43 +79,6 @@ export default function LoginScreen({ onLogin, onBack }) {
     }
   };
 
-  const handleRegister = async (e) => {
-    e.preventDefault();
-    if (password !== confirmPassword) {
-      setError("Passwords do not match.");
-      return;
-    }
-    setLoading(true);
-    setError("");
-
-    try {
-      const res = await fetch(`${API_BASE_URL}/register/`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, email, password })
-      });
-
-      const data = await res.json();
-
-      if (res.ok) {
-        if (data.token) {
-          onLogin(data);
-        } else {
-          setSuccessMsg("Account created successfully! Please log in.");
-          setView("LOGIN");
-          setPassword("");
-          setConfirmPassword("");
-        }
-      } else {
-        setError(data.error || "Registration failed. Username or email may already exist.");
-      }
-    } catch (err) {
-      setError("Network error. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleForgotPassword = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -158,9 +121,8 @@ export default function LoginScreen({ onLogin, onBack }) {
       });
       const data = await res.json();
       if (res.ok) {
-        setSuccessMsg(data.message || "Password updated successfully. Redirecting to sign in...");
+        setSuccessMsg(data.message || "Password updated successfully. Redirecting to login...");
         setTimeout(() => {
-          // Clean URL params and return to login screen
           window.history.replaceState({}, document.title, window.location.pathname);
           setView("LOGIN");
           setPassword("");
@@ -247,26 +209,16 @@ export default function LoginScreen({ onLogin, onBack }) {
     <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: "#F3EEE3", padding: "20px" }}>
       <div style={{ backgroundColor: "#fff", padding: "40px", borderRadius: "8px", border: "2px solid #161412", maxWidth: "420px", width: "100%", textAlign: "center", boxShadow: "0 10px 25px rgba(0,0,0,0.05)" }}>
         
-        <h2 style={{ fontFamily: "Georgia, serif", margin: "0 0 25px 0", fontSize: "28px" }}>
-          {view === "REGISTER" ? "Join Cyberbriefs" : view === "FORGOT" ? "Reset Password" : view === "RESET_CONFIRM" ? "Set New Password" : "Welcome Back"}
-        </h2>
+        <div style={{ display: "flex", justifyContent: "center", marginBottom: "20px" }}>
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#161412" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+          </svg>
+        </div>
 
-        {(view === "LOGIN" || view === "REGISTER") && (
-          <div style={{ display: "flex", marginBottom: "25px", borderBottom: "2px solid #EBE4D5" }}>
-            <button
-              onClick={() => switchView("LOGIN")}
-              style={{ flex: 1, padding: "10px", background: "none", border: "none", borderBottom: view === "LOGIN" ? "2px solid #161412" : "none", fontWeight: "bold", color: view === "LOGIN" ? "#161412" : "#A39E93", cursor: "pointer", marginBottom: "-2px" }}
-            >
-              SIGN IN
-            </button>
-            <button
-              onClick={() => switchView("REGISTER")}
-              style={{ flex: 1, padding: "10px", background: "none", border: "none", borderBottom: view === "REGISTER" ? "2px solid #161412" : "none", fontWeight: "bold", color: view === "REGISTER" ? "#161412" : "#A39E93", cursor: "pointer", marginBottom: "-2px" }}
-            >
-              CREATE ACCOUNT
-            </button>
-          </div>
-        )}
+        <h2 style={{ fontFamily: "Georgia, serif", margin: "0 0 30px 0", fontSize: "26px", color: "#161412" }}>
+          {view === "FORGOT" ? "Reset Password" : view === "RESET_CONFIRM" ? "Set New Password" : "Admin Login"}
+        </h2>
 
         {error && (
           <div style={{ backgroundColor: "#ffebee", color: "#D32F2F", padding: "10px", marginBottom: "20px", fontSize: "14px", fontWeight: "bold", border: "1px solid #ffcdd2" }}>
@@ -289,7 +241,7 @@ export default function LoginScreen({ onLogin, onBack }) {
               {loading ? "Sending..." : "SEND RESET LINK"}
             </button>
             <button type="button" onClick={() => switchView("LOGIN")} style={{ background: "none", border: "none", color: "#5E574C", textDecoration: "underline", cursor: "pointer", fontSize: "13px" }}>
-              Back to Sign In
+              Back to Login
             </button>
           </form>
         )}
@@ -331,29 +283,7 @@ export default function LoginScreen({ onLogin, onBack }) {
             </div>
 
             <button type="submit" disabled={loading} style={{ padding: "14px", backgroundColor: "#161412", color: "#F3EEE3", border: "none", fontWeight: "bold", cursor: "pointer", transition: "0.2s" }}>
-              {loading ? "Authenticating..." : "CONTINUE"}
-            </button>
-          </form>
-        )}
-
-        {view === "REGISTER" && (
-          <form onSubmit={handleRegister} style={{ display: "flex", flexDirection: "column", gap: "15px" }}>
-            <input type="email" placeholder="Email Address" required value={email} onChange={e => setEmail(e.target.value)} style={{ padding: "14px", border: "1px solid #161412", outline: "none", fontSize: "15px", boxSizing: "border-box" }} />
-            <input type="text" placeholder="Choose a Username" required value={username} onChange={e => setUsername(e.target.value)} style={{ padding: "14px", border: "1px solid #161412", outline: "none", fontSize: "15px", boxSizing: "border-box" }} />
-
-            <div style={{ position: "relative", width: "100%" }}>
-              <input type={showPassword ? "text" : "password"} placeholder="Create Password" required value={password} onChange={e => setPassword(e.target.value)} style={{ padding: "14px 45px 14px 14px", border: "1px solid #161412", outline: "none", fontSize: "15px", width: "100%", boxSizing: "border-box" }} />
-              <button type="button" onClick={() => setShowPassword(!showPassword)} style={{ position: "absolute", right: "12px", top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#5E574C", padding: 0 }}>
-                <EyeIcon show={showPassword} />
-              </button>
-            </div>
-
-            <div style={{ position: "relative", width: "100%" }}>
-              <input type={showPassword ? "text" : "password"} placeholder="Confirm Password" required value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} style={{ padding: "14px 45px 14px 14px", border: "1px solid #161412", outline: "none", fontSize: "15px", width: "100%", boxSizing: "border-box" }} />
-            </div>
-
-            <button type="submit" disabled={loading} style={{ padding: "14px", backgroundColor: "#C9A227", color: "#161412", border: "none", fontWeight: "bold", cursor: "pointer", transition: "0.2s" }}>
-              {loading ? "Creating Account..." : "SIGN UP"}
+              {loading ? "Authenticating..." : "SECURE LOGIN"}
             </button>
           </form>
         )}
